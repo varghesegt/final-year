@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Factory, Cpu, Brain, ClipboardList, BarChart3, Clock,
-  Activity, ShieldCheck, Zap
+  Activity, ShieldCheck, Zap, Radio
 } from 'lucide-react';
 import { getFactorySummary } from '../../data/factoryData';
 
@@ -16,6 +16,8 @@ const NAV_ITEMS = [
   { section: 'Analytics' },
   { path: '/reliability', label: 'Reliability Analytics', icon: BarChart3, description: 'KPIs & metrics' },
   { path: '/lifecycle', label: 'Asset Lifecycle', icon: Clock, description: 'Asset management' },
+  { section: 'Connectivity' },
+  { path: '/gateway', label: 'IoT Gateway & SCADA', icon: Radio, description: 'MQTT & OPC-UA tags' },
 ];
 
 export default function Sidebar() {

@@ -10,6 +10,8 @@ export { HQCurve } from './HQCurve';
 export { WeibullPlot } from './WeibullPlot';
 export { MaintenanceCalendar } from './MaintenanceCalendar';
 export { DemoController } from './DemoController';
+export { VibrationFFT } from './VibrationFFT';
+export { WhatIfSimulator } from './WhatIfSimulator';
 
 // ── Status Dot ──────────────────────────────────────────────────────
 export function StatusDot({ status = 'running', size = 'md' }) {

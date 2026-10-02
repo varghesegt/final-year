@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Root temporary files and archives
+/*.glb
+/*.zip
+/*.cjs
+

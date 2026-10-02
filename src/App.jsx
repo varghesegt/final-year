@@ -15,6 +15,7 @@ import Predictions from './pages/Predictions';
 import WorkOrders from './pages/WorkOrders';
 import Reliability from './pages/Reliability';
 import Lifecycle from './pages/Lifecycle';
+import { IndustrialGateway } from './pages/IndustrialGateway';
 
 import './styles/components.css';
 import './styles/layout.css';
@@ -65,6 +66,7 @@ export default function App() {
               <Route path="/reliability" element={<AnimatedPage><Reliability /></AnimatedPage>} />
               <Route path="/lifecycle" element={<AnimatedPage><Lifecycle /></AnimatedPage>} />
               <Route path="/lifecycle/:machineId" element={<AnimatedPage><Lifecycle /></AnimatedPage>} />
+              <Route path="/gateway" element={<AnimatedPage><IndustrialGateway /></AnimatedPage>} />
             </Routes>
           </AnimatePresence>
         </main>
