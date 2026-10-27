@@ -419,7 +419,7 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
     // ── Load Real GLB Model First ─────────────────────────────────────
     setLoadingModel(true);
     const loader = new GLTFLoader();
-    const glbPath = `/models/${machineId}.glb`;
+    const glbPath = `${import.meta.env.BASE_URL}models/${machineId}.glb`;
 
     loader.load(
       glbPath,

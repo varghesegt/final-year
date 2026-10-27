@@ -597,7 +597,7 @@ export function Factory3DFloor() {
       // For P-101, CNC-001, CONV-401, XFMR-302, build authentic real industrial CAD assemblies!
       if (id === 'COMP-201') {
         loader.load(
-          `/models/COMP-201.glb`,
+          `${import.meta.env.BASE_URL}models/COMP-201.glb`,
           (gltf) => {
             const model = gltf.scene;
             model.name = `realModel_COMP-201`;
@@ -644,7 +644,7 @@ export function Factory3DFloor() {
         );
       } else if (id === 'P-101') {
         loader.load(
-          `/models/P-101.glb`,
+          `${import.meta.env.BASE_URL}models/P-101.glb`,
           (gltf) => {
             const model = gltf.scene;
             model.name = `realModel_P-101`;
@@ -696,7 +696,7 @@ export function Factory3DFloor() {
         );
       } else if (id === 'CNC-001') {
         loader.load(
-          `/models/CNC-001.glb`,
+          `${import.meta.env.BASE_URL}models/CNC-001.glb`,
           (gltf) => {
             const model = gltf.scene;
             model.name = `realModel_CNC-001`;
@@ -734,7 +734,7 @@ export function Factory3DFloor() {
         );
       } else if (id === 'ROB-001') {
         loader.load(
-          `/models/ROB-001.glb`,
+          `${import.meta.env.BASE_URL}models/ROB-001.glb`,
           (gltf) => {
             const model = gltf.scene;
             model.name = `realModel_ROB-001`;

@@ -2,13 +2,17 @@
   "name": "smart-factory",
   "private": true,
   "version": "1.0.0",
+  "homepage": "https://varghesegt.github.io/final-year",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "vite build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "docx": "^9.13.0",
     "framer-motion": "^12.12.0",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
@@ -19,6 +23,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.5.2",
+    "gh-pages": "^6.3.0",
     "vite": "^6.3.0"
   }
 }
