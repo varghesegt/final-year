@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Sparkles, ChevronRight, Play, RotateCcw, AlertTriangle, CheckCircle, Info, X, Zap } from 'lucide-react';
+import { Bell, Sparkles, ChevronRight, Play, RotateCcw, AlertTriangle, CheckCircle, Info, X, Zap, Menu } from 'lucide-react';
 import {
   getFactorySummary, NOTIFICATIONS, markNotificationsRead,
   subscribeToNotifications, triggerFailureSimulation, resetMachineHealth,
@@ -14,9 +14,10 @@ const PAGE_TITLES = {
   '/work-orders': 'Decision Engine',
   '/reliability': 'Reliability Analytics',
   '/lifecycle': 'Asset Lifecycle',
+  '/gateway': 'IoT Gateway & SCADA',
 };
 
-export default function Topbar() {
+export default function Topbar({ onToggleSidebar = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
@@ -71,9 +72,16 @@ export default function Topbar() {
     <div className="topbar-wrapper">
       <header className="topbar">
         <div className="topbar__left">
+          <button
+            className="topbar__menu-btn"
+            onClick={onToggleSidebar}
+            aria-label="Toggle navigation menu"
+          >
+            <Menu size={20} />
+          </button>
           <div className="topbar__breadcrumb">
-            <span>SmartFactory</span>
-            <ChevronRight size={14} />
+            <span className="topbar__breadcrumb-root">SmartFactory</span>
+            <ChevronRight size={14} className="topbar__breadcrumb-sep" />
             <span className="topbar__breadcrumb-current">{pageTitle}</span>
           </div>
         </div>

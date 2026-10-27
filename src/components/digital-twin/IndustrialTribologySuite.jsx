@@ -31,7 +31,7 @@ export function IndustrialTribologySuite({ machine, sensors }) {
       background: 'var(--bg-primary)',
       border: '1px solid var(--border-subtle)',
       borderRadius: 'var(--radius-lg, 12px)',
-      padding: '24px',
+      padding: 'clamp(14px, 3vw, 24px)',
       boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05))',
       marginBottom: 'var(--sp-6, 24px)'
     }}>
@@ -109,7 +109,7 @@ export function IndustrialTribologySuite({ machine, sensors }) {
       {/* 4 Diagnostic Cards Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: '20px'
       }}>
         {/* CARD 1: Dual Pt100 RTDs & API 610 Delta-T */}

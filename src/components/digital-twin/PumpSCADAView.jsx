@@ -94,7 +94,7 @@ export function PumpSCADAView({ sensors, machine }) {
         </div>
 
         {/* Center: Quick Mode Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#0b1329', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#0b1329', padding: '3px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', maxWidth: '100%' }}>
           {[
             { id: 'schematic', label: 'P&ID Schematic', icon: Layers },
             { id: 'pid', label: 'PID Loop Controller', icon: Sliders },
@@ -619,7 +619,7 @@ export function PumpSCADAView({ sensors, machine }) {
 
       {/* ── Tab 2: PID Loop Controller (FIC-101 Cascade Station) ── */}
       {activeTab === 'pid' && (
-        <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        <div style={{ padding: 'clamp(14px, 3vw, 24px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
           {/* Controller Card */}
           <div style={{ background: 'rgba(15, 23, 42, 0.7)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid rgba(59,130,246,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -732,7 +732,7 @@ export function PumpSCADAView({ sensors, machine }) {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1px', background: 'rgba(255,255,255,0.06)' }}>
               {[
                 { name: 'Low Suction Pressure (Anti-Cavitation)', tag: 'PALL-101', trip: '< 0.50 bar', current: `${suctionPress} bar`, status: 'OK' },
                 { name: 'Bearing High Temperature (DE)', tag: 'TAHH-101A', trip: '> 78.0 °C', current: `${tempVal} °C`, status: 'OK' },
@@ -761,7 +761,7 @@ export function PumpSCADAView({ sensors, machine }) {
       {/* ── Bottom SCADA Diagnostics & Engineering Metric Strip ─────── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
         gap: '1px',
         background: 'rgba(255, 255, 255, 0.08)',
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',

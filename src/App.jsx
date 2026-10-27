@@ -3,6 +3,7 @@
    Routes, Layout Shell, Page Transitions
    =================================================================== */
 
+import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -49,12 +50,18 @@ function AnimatedPage({ children }) {
 
 export default function App() {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar automatically on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="app-shell">
-      <Sidebar />
+    <div className={`app-shell ${sidebarOpen ? 'app-shell--sidebar-open' : ''}`}>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="app-shell__content">
-        <Topbar />
+        <Topbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
         <main className="app-shell__main">
           <AnimatePresence mode="wait">
             <Routes location={location} key={location.pathname}>

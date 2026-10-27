@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Factory, Cpu, Brain, ClipboardList, BarChart3, Clock,
-  Activity, ShieldCheck, Zap, Radio
+  Activity, ShieldCheck, Zap, Radio, X
 } from 'lucide-react';
 import { getFactorySummary } from '../../data/factoryData';
 
@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { path: '/gateway', label: 'IoT Gateway & SCADA', icon: Radio, description: 'MQTT & OPC-UA tags' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose = () => {} }) {
   const location = useLocation();
   const [summary, setSummary] = useState(getFactorySummary());
 
@@ -32,17 +32,34 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="sidebar">
-      {/* Brand Header */}
-      <div className="sidebar__header">
-        <div className="sidebar__logo">
-          <Factory size={22} />
+    <>
+      {isOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
+        {/* Brand Header */}
+        <div className="sidebar__header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', flex: 1 }}>
+            <div className="sidebar__logo">
+              <Factory size={22} />
+            </div>
+            <div className="sidebar__brand">
+              <span className="sidebar__title">SmartFactory</span>
+              <span className="sidebar__subtitle">Industry 4.0 Platform</span>
+            </div>
+          </div>
+          <button
+            className="sidebar__close-btn"
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
         </div>
-        <div className="sidebar__brand">
-          <span className="sidebar__title">SmartFactory</span>
-          <span className="sidebar__subtitle">Industry 4.0 Platform</span>
-        </div>
-      </div>
 
       {/* Navigation Links */}
       <nav className="sidebar__nav">
@@ -62,6 +79,7 @@ export default function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={`sidebar__link ${isActive ? 'sidebar__link--active' : ''}`}
             >
               <Icon size={18} className="sidebar__icon" />
@@ -96,5 +114,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

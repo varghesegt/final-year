@@ -18,16 +18,23 @@ export function SignaturePad({ onSign, width = 420, height = 140 }) {
 
   const getPos = (e) => {
     const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null);
+    const clientX = touch ? touch.clientX : e.clientX;
+    const clientY = touch ? touch.clientY : e.clientY;
+    const scaleX = rect.width ? (canvas.width / rect.width) : 1;
+    const scaleY = rect.height ? (canvas.height / rect.height) : 1;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
     };
   };
 
   const startDrawing = (e) => {
+    if (e.cancelable && e.type.startsWith('touch')) {
+      e.preventDefault();
+    }
     const pos = getPos(e);
     const ctx = canvasRef.current.getContext('2d');
     ctx.beginPath();
@@ -38,7 +45,9 @@ export function SignaturePad({ onSign, width = 420, height = 140 }) {
 
   const draw = (e) => {
     if (!isDrawing) return;
-    e.preventDefault();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     const pos = getPos(e);
     const ctx = canvasRef.current.getContext('2d');
     ctx.lineTo(pos.x, pos.y);
@@ -83,7 +92,7 @@ export function SignaturePad({ onSign, width = 420, height = 140 }) {
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          style={{ width: '100%', height: `${height}px`, cursor: 'crosshair', display: 'block' }}
+          style={{ width: '100%', height: `${height}px`, cursor: 'crosshair', display: 'block', touchAction: 'none' }}
         />
 
         {/* Signature Guideline */}

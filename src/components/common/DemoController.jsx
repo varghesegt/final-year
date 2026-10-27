@@ -134,7 +134,7 @@ export function DemoController() {
         </div>
 
         {/* Center 5-Stage Stepper Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', maxWidth: '100%', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
           {STAGES.map((s) => (
             <button
               key={s.id}
@@ -196,14 +196,14 @@ export function DemoController() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(6px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px'
         }}>
           <div style={{
             background: '#ffffff',
             border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-xl)',
-            maxWidth: '560px', width: '100%',
-            padding: '24px',
+            maxWidth: '560px', width: '100%', maxHeight: '90vh', overflowY: 'auto',
+            padding: 'clamp(16px, 3vw, 24px)',
             boxShadow: 'var(--shadow-xl)',
             animation: 'slide-up 0.3s ease-out'
           }}>

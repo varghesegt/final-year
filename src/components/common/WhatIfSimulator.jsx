@@ -63,7 +63,7 @@ export function WhatIfSimulator({ baseHealth = 82, baseRUL = 120, machineName = 
       {/* Main Grid: Controls Left, Live Projections Right */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: '20px',
         alignItems: 'start'
       }}>
@@ -172,7 +172,7 @@ export function WhatIfSimulator({ baseHealth = 82, baseRUL = 120, machineName = 
         {/* Right Real-time Physics Output Display */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* Key Output Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '10px' }}>
             {/* Projected RUL */}
             <div style={{ background: '#ffffff', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PROJECTED RUL</div>

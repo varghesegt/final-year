@@ -152,7 +152,7 @@ export default function Lifecycle() {
             <DollarSign size={16} className="twin-panel__title-icon" />
             Total Cost of Ownership (TCO) Breakdown
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-5)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-5)', flexWrap: 'wrap' }}>
             <ResponsiveContainer width={180} height={180}>
               <PieChart>
                 <Pie
@@ -238,44 +238,46 @@ export default function Lifecycle() {
           <Wrench size={16} className="twin-panel__title-icon" />
           Maintenance History Log
         </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Action</th>
-              <th>Duration</th>
-              <th>Cost</th>
-              <th>Technician</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history.length === 0 ? (
+        <div className="data-table-container">
+          <table className="data-table">
+            <thead>
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 'var(--sp-4)' }}>
-                  No maintenance records logged for this asset.
-                </td>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Action</th>
+                <th>Duration</th>
+                <th>Cost</th>
+                <th>Technician</th>
               </tr>
-            ) : (
-              history.map((entry, i) => (
-                <tr key={i}>
-                  <td style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
-                    {new Date(entry.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+            </thead>
+            <tbody>
+              {history.length === 0 ? (
+                <tr>
+                  <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 'var(--sp-4)' }}>
+                    No maintenance records logged for this asset.
                   </td>
-                  <td>
-                    <Badge variant={entry.type === 'Corrective' ? 'critical' : entry.type === 'Predictive' ? 'info' : 'healthy'}>
-                      {entry.type}
-                    </Badge>
-                  </td>
-                  <td style={{ color: 'var(--text-primary)', maxWidth: '300px' }}>{entry.action}</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{entry.duration}h</td>
-                  <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-amber)' }}>₹{entry.cost.toLocaleString()}</td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{entry.technician}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                history.map((entry, i) => (
+                  <tr key={i}>
+                    <td style={{ fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                      {new Date(entry.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </td>
+                    <td>
+                      <Badge variant={entry.type === 'Corrective' ? 'critical' : entry.type === 'Predictive' ? 'info' : 'healthy'}>
+                        {entry.type}
+                      </Badge>
+                    </td>
+                    <td style={{ color: 'var(--text-primary)', maxWidth: '300px' }}>{entry.action}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{entry.duration}h</td>
+                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-amber)' }}>₹{entry.cost.toLocaleString()}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{entry.technician}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

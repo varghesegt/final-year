@@ -3,7 +3,7 @@ import { QrCode, Printer, X, ShieldCheck, Factory, Cpu } from 'lucide-react';
 export function AssetQRCodeModal({ machine, onClose }) {
   if (!machine) return null;
 
-  const qrUrl = `${window.location.origin}/digital-twin/${machine.id}`;
+  const qrUrl = `${window.location.origin}${window.location.pathname}#/digital-twin/${machine.id}`;
 
   const handlePrintBadge = () => {
     window.print();

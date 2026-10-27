@@ -38,7 +38,7 @@ export function WorkOrderSignOffModal({ workOrder, onClose, onConfirmSignOff }) 
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px'
     }}>
       <div style={{
         background: '#ffffff',
@@ -136,12 +136,12 @@ export function WorkOrderSignOffModal({ workOrder, onClose, onConfirmSignOff }) 
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
             <button
               type="submit"
               disabled={!allChecked || !signatureData}
               style={{
-                flex: 1, padding: '10px 16px', borderRadius: 'var(--radius-md)',
+                flex: '2 1 220px', padding: '10px 16px', borderRadius: 'var(--radius-md)',
                 background: (!allChecked || !signatureData) ? 'var(--border-default)' : 'var(--status-healthy)',
                 color: '#ffffff', border: 'none', fontSize: '12px', fontWeight: 700,
                 cursor: (!allChecked || !signatureData) ? 'not-allowed' : 'pointer',
@@ -150,15 +150,16 @@ export function WorkOrderSignOffModal({ workOrder, onClose, onConfirmSignOff }) 
               }}
             >
               <CheckCircle2 size={16} />
-              Submit Sign-Off & Restore Asset Health (95%)
+              Submit Sign-Off & Restore Health (95%)
             </button>
             <button
               type="button"
               onClick={onClose}
               style={{
-                padding: '10px 16px', borderRadius: 'var(--radius-md)',
+                flex: '1 1 90px', padding: '10px 16px', borderRadius: 'var(--radius-md)',
                 background: '#f1f5f9', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-default)', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+                border: '1px solid var(--border-default)', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                textAlign: 'center'
               }}
             >
               Cancel

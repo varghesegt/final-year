@@ -42,13 +42,13 @@
 
 .factory-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--sp-4);
 }
 
 .factory-floor {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: var(--sp-5);
 }
 
@@ -227,7 +227,7 @@
 
 .twin-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
   gap: var(--sp-6);
 }
 
@@ -280,7 +280,7 @@
 
 .prediction-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: var(--sp-6);
 }
 
@@ -422,7 +422,7 @@
 
 .workorder-card__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: var(--sp-5);
 }
 
@@ -461,7 +461,7 @@
 
 .workorder-card__cost-comparison {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: var(--sp-4);
   margin-top: var(--sp-3);
 }
@@ -526,13 +526,13 @@
 
 .reliability-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: var(--sp-5);
 }
 
 .reliability-charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
   gap: var(--sp-6);
 }
 
@@ -565,7 +565,7 @@
 
 .lifecycle-header {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: var(--sp-5);
 }
 
@@ -620,4 +620,154 @@
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   color: var(--accent-amber);
+}
+
+/* ── Global Responsive Enhancements ───────────────────────────────── */
+@media (max-width: 1024px) {
+  .section-header {
+    margin-bottom: var(--sp-4);
+  }
+
+  .twin-panel,
+  .prediction-card,
+  .workorder-card,
+  .chart-panel,
+  .zone-card {
+    padding: var(--sp-4);
+  }
+
+  .twin-panel__title {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header__title {
+    font-size: var(--fs-lg);
+  }
+
+  .twin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-4);
+    padding: var(--sp-4);
+  }
+
+  .twin-header__actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  .twin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prediction-card__body {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-3);
+  }
+
+  .prediction-card__details {
+    width: 100%;
+  }
+
+  .workorder-card__cost-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .cost-box__amount {
+    font-size: var(--fs-lg);
+  }
+
+  .reliability-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .viewer-source-badge {
+    display: none !important;
+  }
+
+  .twin-header__icon {
+    display: none;
+  }
+
+  .twin-header__text h1 {
+    font-size: var(--fs-base) !important;
+  }
+
+  .twin-header__meta {
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .zone-card {
+    padding: var(--sp-3);
+  }
+
+  .zone-card__machines {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+
+  .section-header__title {
+    font-size: var(--fs-base);
+  }
+
+  .section-header__subtitle {
+    font-size: var(--fs-xs);
+  }
+
+  .factory-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .reliability-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .lifecycle-header {
+    grid-template-columns: 1fr;
+  }
+
+  .workorder-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+
+  .workorder-card {
+    padding: var(--sp-3);
+  }
+
+  .workorder-card__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    padding: var(--sp-4);
+  }
+
+  .metric-card__value {
+    font-size: var(--fs-2xl);
+  }
+
+  .twin-panel {
+    padding: var(--sp-3) !important;
+  }
 }

@@ -13,7 +13,7 @@ export function AuditReportModal({ workOrders = [], onClose }) {
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px'
     }}>
       <div style={{
         background: '#ffffff',
@@ -29,11 +29,11 @@ export function AuditReportModal({ workOrders = [], onClose }) {
           padding: '14px 20px',
           borderBottom: '1px solid var(--border-subtle)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: '#f8fafc'
+          background: '#f8fafc', flexWrap: 'wrap', gap: '8px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileText size={18} style={{ color: 'var(--accent-blue)' }} />
-            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
+            <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
               ISO 55001 Asset Management Audit & Compliance Report
             </span>
           </div>
@@ -60,9 +60,9 @@ export function AuditReportModal({ workOrders = [], onClose }) {
         </div>
 
         {/* Formal Printable Audit Document */}
-        <div style={{ padding: '32px', overflowY: 'auto', background: '#ffffff', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(14px, 3vw, 32px)', overflowY: 'auto', background: '#ffffff', color: '#0f172a' }}>
           {/* Document Letterhead */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #0f172a', paddingBottom: '16px', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Factory size={26} style={{ color: 'var(--accent-blue)' }} />
@@ -85,7 +85,7 @@ export function AuditReportModal({ workOrders = [], onClose }) {
           </div>
 
           {/* Plant Summary KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginBottom: '24px' }}>
             <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#f8fafc' }}>
               <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Fleet Health Index</div>
               <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-blue)', marginTop: '2px' }}>{summary.avgHealth}%</div>
@@ -111,39 +111,41 @@ export function AuditReportModal({ workOrders = [], onClose }) {
             <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px' }}>
               1. Monitored Equipment Roster & Health Condition
             </h4>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Asset ID</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Machine Name</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Manufacturer & Model</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Zone</th>
-                  <th style={{ textAlign: 'center', padding: '6px 8px' }}>Health %</th>
-                  <th style={{ textAlign: 'center', padding: '6px 8px' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(MACHINES).map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{m.id}</td>
-                    <td style={{ padding: '6px 8px', fontWeight: 600 }}>{m.name}</td>
-                    <td style={{ padding: '6px 8px', color: '#64748b' }}>{m.manufacturer} {m.model}</td>
-                    <td style={{ padding: '6px 8px' }}>{m.zone}</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{m.health}%</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
-                        background: m.status === 'critical' ? '#fee2e2' : m.status === 'warning' ? '#fef3c7' : '#d1fae5',
-                        color: m.status === 'critical' ? '#dc2626' : m.status === 'warning' ? '#d97706' : '#059669',
-                        textTransform: 'uppercase'
-                      }}>
-                        {m.status}
-                      </span>
-                    </td>
+            <div className="data-table-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Asset ID</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Machine Name</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Manufacturer & Model</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Zone</th>
+                    <th style={{ textAlign: 'center', padding: '6px 8px' }}>Health %</th>
+                    <th style={{ textAlign: 'center', padding: '6px 8px' }}>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {Object.values(MACHINES).map((m) => (
+                    <tr key={m.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{m.id}</td>
+                      <td style={{ padding: '6px 8px', fontWeight: 600 }}>{m.name}</td>
+                      <td style={{ padding: '6px 8px', color: '#64748b' }}>{m.manufacturer} {m.model}</td>
+                      <td style={{ padding: '6px 8px' }}>{m.zone}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{m.health}%</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
+                          background: m.status === 'critical' ? '#fee2e2' : m.status === 'warning' ? '#fef3c7' : '#d1fae5',
+                          color: m.status === 'critical' ? '#dc2626' : m.status === 'warning' ? '#d97706' : '#059669',
+                          textTransform: 'uppercase'
+                        }}>
+                          {m.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Section 2: Active Maintenance Work Orders Audit */}
@@ -151,48 +153,50 @@ export function AuditReportModal({ workOrders = [], onClose }) {
             <h4 style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px' }}>
               2. Maintenance Work Orders & Preventive ROI
             </h4>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-              <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Order ID</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Asset</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Failure Mode / Action</th>
-                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Assigned Specialist</th>
-                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Preventive Cost</th>
-                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Net Savings</th>
-                  <th style={{ textAlign: 'center', padding: '6px 8px' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workOrders.slice(0, 4).map((wo) => (
-                  <tr key={wo.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{wo.id}</td>
-                    <td style={{ padding: '6px 8px' }}>{wo.machineName}</td>
-                    <td style={{ padding: '6px 8px', color: '#475569' }}>{wo.action}</td>
-                    <td style={{ padding: '6px 8px' }}>{wo.assignedTo?.name}</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{wo.costComparison?.preventive.cost.toLocaleString()}</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--status-healthy)', fontWeight: 700 }}>
-                      ₹{wo.costComparison?.savings.toLocaleString()}
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                      <span style={{
-                        padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
-                        background: wo.status === 'Completed' ? '#d1fae5' : '#e0f2fe',
-                        color: wo.status === 'Completed' ? '#059669' : '#0284c7'
-                      }}>
-                        {wo.status}
-                      </span>
-                    </td>
+            <div className="data-table-container">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Order ID</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Asset</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Failure Mode / Action</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Assigned Specialist</th>
+                    <th style={{ textAlign: 'right', padding: '6px 8px' }}>Preventive Cost</th>
+                    <th style={{ textAlign: 'right', padding: '6px 8px' }}>Net Savings</th>
+                    <th style={{ textAlign: 'center', padding: '6px 8px' }}>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {workOrders.slice(0, 4).map((wo) => (
+                    <tr key={wo.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{wo.id}</td>
+                      <td style={{ padding: '6px 8px' }}>{wo.machineName}</td>
+                      <td style={{ padding: '6px 8px', color: '#475569' }}>{wo.action}</td>
+                      <td style={{ padding: '6px 8px' }}>{wo.assignedTo?.name}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>₹{wo.costComparison?.preventive.cost.toLocaleString()}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--status-healthy)', fontWeight: 700 }}>
+                        ₹{wo.costComparison?.savings.toLocaleString()}
+                      </td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '2px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 700,
+                          background: wo.status === 'Completed' ? '#d1fae5' : '#e0f2fe',
+                          color: wo.status === 'Completed' ? '#059669' : '#0284c7'
+                        }}>
+                          {wo.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Section 3: Engineering Certification & Sign-off Stamp */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            borderTop: '2px solid #0f172a', paddingTop: '16px'
+            borderTop: '2px solid #0f172a', paddingTop: '16px', flexWrap: 'wrap', gap: '16px'
           }}>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a' }}>

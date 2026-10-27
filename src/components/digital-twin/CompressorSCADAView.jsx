@@ -160,7 +160,7 @@ export function CompressorSCADAView({ sensors, machine }) {
       {/* ── Main Content Grid ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) 340px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
         gap: '0px',
         minHeight: '480px'
       }}>

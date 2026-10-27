@@ -163,7 +163,7 @@ export function CNCSCADAView({ sensors, machine }) {
       {/* ── 4 Hero Telemetry Cards Strip ───────────────────────────────── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
         gap: '12px',
         padding: '16px 20px',
         background: '#090e1a',
@@ -268,7 +268,7 @@ export function CNCSCADAView({ sensors, machine }) {
       {/* ── Main Unified View: Simplified 2D Machine Visual & 3-Axis DRO ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 320px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
         minHeight: '440px',
         background: '#070d18'
       }}>

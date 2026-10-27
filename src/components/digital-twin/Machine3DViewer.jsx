@@ -1270,7 +1270,8 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
       {/* 3D Top-Right Toolbar Controls */}
       <div style={{
         position: 'absolute', top: '12px', right: '12px',
-        display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10
+        display: 'flex', alignItems: 'center', gap: '8px', zIndex: 11,
+        maxWidth: 'calc(100% - 24px)', flexWrap: 'wrap', justifyContent: 'flex-end'
       }}>
         {/* Shading Mode Toggle Pill */}
         <div style={{
@@ -1366,7 +1367,7 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
       </div>
 
       {/* Model Asset Source Badge (Top Left) */}
-      <div style={{
+      <div className="viewer-source-badge" style={{
         position: 'absolute', top: '12px', left: '12px',
         padding: '5px 12px', borderRadius: 'var(--radius-md)',
         background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)',

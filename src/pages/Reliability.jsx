@@ -255,56 +255,58 @@ export default function Reliability() {
             <Gauge size={16} style={{ color: 'var(--accent-amber)', opacity: 0.7 }} />
             Equipment Reliability Summary
           </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Asset</th>
-                <th>Type</th>
-                <th>Health</th>
-                <th>MTBF (hrs)</th>
-                <th>MTTR (hrs)</th>
-                <th>Availability</th>
-                <th>OEE</th>
-                <th>Failures</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.values(MACHINES).map(m => {
-                const met = metrics[m.id];
-                if (!met) return null;
-                return (
-                  <tr
-                    key={m.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/digital-twin/${m.id}`)}
-                  >
-                    <td style={{ color: 'var(--text-primary)', fontWeight: 'var(--fw-medium)' }}>
-                      {m.id} — {m.name}
-                    </td>
-                    <td>{m.type}</td>
-                    <td>
-                      <span style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 'var(--fw-semibold)',
-                        color: m.health >= 80 ? 'var(--status-healthy)'
-                          : m.health >= 50 ? 'var(--status-warning)'
-                          : 'var(--status-critical)'
-                      }}>
-                        {m.health}%
-                      </span>
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{met.mtbf.toLocaleString()}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{met.mttr}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{met.availability}%</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', color: met.oee >= 80 ? 'var(--status-healthy)' : 'var(--status-warning)' }}>
-                      {met.oee}%
-                    </td>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{met.totalFailures}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="data-table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Type</th>
+                  <th>Health</th>
+                  <th>MTBF (hrs)</th>
+                  <th>MTTR (hrs)</th>
+                  <th>Availability</th>
+                  <th>OEE</th>
+                  <th>Failures</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(MACHINES).map(m => {
+                  const met = metrics[m.id];
+                  if (!met) return null;
+                  return (
+                    <tr
+                      key={m.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/digital-twin/${m.id}`)}
+                    >
+                      <td style={{ color: 'var(--text-primary)', fontWeight: 'var(--fw-medium)' }}>
+                        {m.id} — {m.name}
+                      </td>
+                      <td>{m.type}</td>
+                      <td>
+                        <span style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 'var(--fw-semibold)',
+                          color: m.health >= 80 ? 'var(--status-healthy)'
+                            : m.health >= 50 ? 'var(--status-warning)'
+                            : 'var(--status-critical)'
+                        }}>
+                          {m.health}%
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{met.mtbf.toLocaleString()}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{met.mttr}</td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{met.availability}%</td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: met.oee >= 80 ? 'var(--status-healthy)' : 'var(--status-warning)' }}>
+                        {met.oee}%
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{met.totalFailures}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

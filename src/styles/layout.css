@@ -255,20 +255,153 @@
   padding: 0 4px;
 }
 
-.topbar__clock {
+.topbar__left {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-family: var(--font-mono);
+  align-items: center;
+  gap: var(--sp-3);
 }
 
-.topbar__clock-time {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-bold);
+.topbar__menu-btn {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.topbar__menu-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.sidebar__close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__close-btn:hover {
+  background: #f1f5f9;
   color: var(--text-primary);
 }
 
-.topbar__clock-date {
-  font-size: 10px;
-  color: var(--text-muted);
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 990;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Responsive Breakpoints ───────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .topbar-wrapper {
+    left: 0;
+  }
+
+  .topbar {
+    padding: 0 var(--sp-5);
+  }
+
+  .topbar__menu-btn {
+    display: flex;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    width: min(290px, 82vw);
+    z-index: 1000;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: 6px 0 28px rgba(15, 23, 42, 0.2);
+  }
+
+  .sidebar__close-btn {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+  }
+
+  .app-shell__content {
+    margin-left: 0;
+  }
+
+  .app-shell__main {
+    padding: var(--sp-5);
+    padding-top: calc(var(--topbar-height) + var(--sp-5));
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 0 var(--sp-3);
+    height: 56px;
+  }
+
+  .topbar-wrapper {
+    height: 56px;
+  }
+
+  .app-shell__main {
+    padding: var(--sp-3);
+    padding-top: calc(56px + var(--sp-3));
+  }
+
+  .topbar__right {
+    gap: var(--sp-2);
+  }
+
+  .topbar__clock-date {
+    display: none;
+  }
+
+  .topbar__clock-time {
+    font-size: 11px;
+  }
+
+  .topbar__ai-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar__breadcrumb-root,
+  .topbar__breadcrumb-sep {
+    display: none;
+  }
+
+  .topbar__breadcrumb-current {
+    font-size: 13px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
