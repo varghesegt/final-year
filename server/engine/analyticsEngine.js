@@ -173,7 +173,7 @@ export function generateMachineTelemetry(machine) {
     };
   }
 
-  return {
+  const baseResult = {
     machineId: machine.id,
     timestamp: new Date().toISOString(),
     alarmLimits: limits,
@@ -297,6 +297,69 @@ export function generateMachineTelemetry(machine) {
     specifics,
     ...specifics,
   };
+
+  baseResult.keyParameters = buildKeyParameters(machine, baseResult);
+  return baseResult;
+}
+
+function buildKeyParameters(machine, t) {
+  const deVal = t.bearingDE.value;
+  const vibVal = t.vibration.value;
+  const statusTemp = deVal >= t.bearingDE.critical ? 'critical' : deVal >= t.bearingDE.warning ? 'warning' : 'normal';
+  const statusVib = vibVal >= t.vibration.critical ? 'critical' : vibVal >= t.vibration.warning ? 'warning' : 'normal';
+
+  if (machine.id === 'P-101') {
+    return [
+      { label: 'Bearing Temperature', value: `${deVal}`, unit: '°C', status: statusTemp, hint: `Limit ${t.bearingDE.warning}°C` },
+      { label: 'Vibration Level', value: `${vibVal}`, unit: 'mm/s', status: statusVib, hint: `Limit ${t.vibration.warning} mm/s` },
+      { label: 'Flow & Pressure', value: `${t.flowRate.value} L/s`, unit: `${t.pressure.value} bar`, status: t.npshMargin.risk !== 'NORMAL' ? 'warning' : 'normal', hint: `NPSH Margin +${t.npshMargin.value} m` },
+      { label: 'Motor Load', value: `${t.activePower.value}`, unit: 'kW', status: 'normal', hint: `${t.rpm.value} RPM · ${t.efficiency.value}% eff` },
+    ];
+  }
+  if (machine.id === 'CNC-001') {
+    const runoutWarn = (t.spindleRunout ?? 1.2) > 4.5 ? 'warning' : 'normal';
+    return [
+      { label: 'Spindle Speed', value: `${t.spindleSpeed ?? t.rpm.value}`, unit: 'RPM', status: 'normal', hint: `Load ${t.spindleLoad ?? 60}%` },
+      { label: 'Spindle Temperature', value: `${deVal}`, unit: '°C', status: statusTemp, hint: `Z-Drift ${t.thermalDriftZ ?? 2.1} µm` },
+      { label: 'Spindle Runout', value: `${t.spindleRunout ?? 1.2}`, unit: 'µm', status: runoutWarn, hint: `Vibration ${vibVal} mm/s` },
+      { label: 'Coolant System', value: `${t.coolantPressure ?? 4.1}`, unit: 'bar', status: (t.coolantPressure ?? 4.1) < 3.4 ? 'warning' : 'normal', hint: `${t.coolantFlow ?? 18.2} L/min` },
+    ];
+  }
+  if (machine.id === 'COMP-201') {
+    const dpWarn = (t.separatorDeltaP ?? 0.25) > 0.65 ? 'warning' : 'normal';
+    return [
+      { label: 'Receiver Pressure', value: `${t.tankPressure ?? t.pressure.value}`, unit: 'bar', status: (t.tankPressure ?? 7.2) < 5.8 ? 'warning' : 'normal', hint: `Dew Point +${t.dewPoint ?? 3.2}°C` },
+      { label: 'Stage 1 Temp', value: `${t.stage1Temp ?? 68}`, unit: '°C', status: (t.stage1Temp ?? 68) > 85 ? 'warning' : 'normal', hint: `Cylinder ${deVal}°C` },
+      { label: 'Air Delivery', value: `${t.airDeliveryFAD ?? 840}`, unit: 'L/min', status: 'normal', hint: `Belt Tension ${t.beltTension ?? 95}%` },
+      { label: 'Drive Vibration', value: `${vibVal}`, unit: 'mm/s', status: dpWarn !== 'normal' ? dpWarn : statusVib, hint: `Sep ΔP ${t.separatorDeltaP ?? 0.25} bar` },
+    ];
+  }
+  if (machine.id === 'CONV-401') {
+    const tensWarn = (t.beltTension ?? 94) < 85 ? 'warning' : 'normal';
+    return [
+      { label: 'Belt Speed', value: `${t.beltSpeedMps ?? 1.42}`, unit: 'm/s', status: 'normal', hint: `${t.rpm.value} RPM Drive` },
+      { label: 'Belt Tension', value: `${t.beltTension ?? 94}`, unit: '%', status: tensWarn, hint: `Motor Slip ${t.motorSlip ?? 2.2}%` },
+      { label: 'Drive Bearing Temp', value: `${deVal}`, unit: '°C', status: statusTemp, hint: `Limit ${t.bearingDE.warning}°C` },
+      { label: 'Drive Vibration', value: `${vibVal}`, unit: 'mm/s', status: statusVib, hint: `Power ${t.activePower.value} kW` },
+    ];
+  }
+  if (machine.id === 'XFMR-302') {
+    const oilWarn = (t.topOilTemp ?? 48) > 75 ? 'warning' : 'normal';
+    const dgaWarn = (t.hydrogenGas ?? 24) > 80 || (t.breakdownVoltage ?? 60) < 40 ? 'warning' : 'normal';
+    return [
+      { label: 'Substation Load', value: `${t.activePower.value}`, unit: 'kW', status: 'normal', hint: `PF ${t.powerFactor.value} · 50 Hz` },
+      { label: 'Top Oil Temp', value: `${t.topOilTemp ?? 48}`, unit: '°C', status: oilWarn, hint: `Winding ${t.windingHotspotTemp ?? 58}°C` },
+      { label: 'Oil Health (BDV)', value: `${t.breakdownVoltage ?? 60}`, unit: 'kV', status: dgaWarn, hint: `H₂ Gas ${t.hydrogenGas ?? 24} ppm` },
+      { label: 'DGA Condition', value: t.dgaCondition?.split(' ')[0] + ' ' + (t.dgaCondition?.split(' ')[1] || ''), unit: '', status: dgaWarn, hint: `Moisture ${t.moisturePpm ?? 13} ppm` },
+    ];
+  }
+  // ROB-001 default
+  return [
+    { label: 'Active Payload', value: `${t.activePayload ?? 142}`, unit: `/ ${t.maxPayload ?? 210} kg`, status: 'normal', hint: `Cycle ${t.cycleTime ?? 14.1}s` },
+    { label: 'Tool Path Speed', value: `${t.tcpVelocity ?? 1260}`, unit: 'mm/s', status: 'normal', hint: `±${t.repeatability ?? 0.02} mm` },
+    { label: 'Reducer Backlash', value: `${t.harmonicBacklash ?? 0.42}`, unit: 'arcmin', status: (t.harmonicBacklash ?? 0.42) > 0.85 ? 'warning' : 'normal', hint: `J2 Servo ${t.servoTemps?.j2 ?? 53}°C` },
+    { label: 'Motor Power', value: `${t.activePower.value}`, unit: 'kW', status: statusVib, hint: `Vibration ${vibVal} mm/s` },
+  ];
 }
 
 export function computePrediction(machine, telemetry) {
@@ -465,21 +528,153 @@ export function computeReliability(machine) {
 }
 
 export function computeWhatIf(machine, baseRul, { rpm = 1450, ambientTemp = 32, loadPercent = 100, lubrication = 'good' }) {
+  const isStaticAsset = machine?.id === 'XFMR-302' || machine?.ratedRpm === 0;
   const lubeFactor = lubrication === 'poor' ? 0.6 : lubrication === 'good' ? 1.0 : 1.35;
   const nominalRpm = machine?.ratedRpm > 0 ? machine.ratedRpm : 1450;
-  const speedRatio = machine?.ratedRpm === 0 ? 1.0 : rpm / nominalRpm;
+  const speedRatio = isStaticAsset ? 1.0 : rpm / nominalRpm;
   const loadRatio = loadPercent / 100;
 
-  const wearAcceleration = Math.round((Math.pow(loadRatio, 2.5) * Math.pow(speedRatio, 1.4) / lubeFactor) * 100) / 100;
-  const projectedTemp = Math.round((ambientTemp + 20 * speedRatio + 18 * loadRatio * (lubrication === 'poor' ? 1.4 : 1.0)) * 10) / 10;
+  const wearAcceleration = isStaticAsset
+    ? Math.round((Math.pow(loadRatio, 1.8) * Math.pow(2, (ambientTemp - 32) / 12) / lubeFactor) * 100) / 100
+    : Math.round((Math.pow(loadRatio, 2.5) * Math.pow(speedRatio, 1.4) / lubeFactor) * 100) / 100;
+
+  const projectedTemp = isStaticAsset
+    ? Math.round((ambientTemp + 24 * Math.pow(loadRatio, 1.6) * (lubrication === 'poor' ? 1.35 : 1.0)) * 10) / 10
+    : Math.round((ambientTemp + 20 * speedRatio + 18 * loadRatio * (lubrication === 'poor' ? 1.4 : 1.0)) * 10) / 10;
+
   const adjustedRUL = Math.max(5, Math.round(baseRul / Math.max(0.2, wearAcceleration)));
   const projectedRisk = Math.min(98, Math.max(5, Math.round((wearAcceleration * 28 + (projectedTemp > 75 ? 30 : 0)) * 10) / 10));
 
+  const assessment = wearAcceleration > 1.5
+    ? `At ${loadPercent}% load${isStaticAsset ? '' : ` and ${rpm} RPM`}, wear increases ${wearAcceleration}x (${projectedTemp}°C). Reduce load or plan maintenance within ${adjustedRUL} days.`
+    : `Operating conditions remain safe with an estimated ${adjustedRUL} days remaining service life.`;
+
   return {
+    isStaticAsset,
+    nominalRpm,
     wearAcceleration,
     projectedTemp,
     adjustedRUL,
     projectedRisk,
+    assessment,
+  };
+}
+
+export function computeFftSpectrum(machine, telemetry) {
+  const vibration = telemetry?.vibration?.value ?? 1.2;
+  const rpm = telemetry?.rpm?.value ?? machine?.ratedRpm ?? 1450;
+  const health = machine?.health ?? 85;
+  const isStaticAsset = machine?.id === 'XFMR-302' || machine?.ratedRpm === 0;
+  const degradation = Math.max(0, (100 - health) / 100);
+
+  const bearingGeom = parseJsonSafe(machine?.bearingGeometry || machine?.bearingGeometryJson, {});
+  const bpfoMult = bearingGeom.bpfoMult || 3.06;
+  const bpfiMult = bearingGeom.bpfiMult || 4.94;
+
+  const f1x = isStaticAsset ? 50 : Math.round((rpm / 60) * 10) / 10;
+  const f2x = isStaticAsset ? 100 : Math.round(f1x * 2 * 10) / 10;
+  const fBPFO = isStaticAsset ? 150 : Math.round(f1x * bpfoMult * 10) / 10;
+  const fBPFI = isStaticAsset ? 250 : Math.round(f1x * bpfiMult * 10) / 10;
+
+  const maxFreq = isStaticAsset
+    ? 300
+    : Math.max(200, Math.ceil((Math.max(fBPFI, fBPFO) + 40) / 20) * 20);
+  const freqStep = Math.max(2, Math.round(maxFreq / 100));
+  const baseAmp = Math.max(0.2, vibration * 0.38);
+  const sigma = Math.max(1.8, maxFreq * 0.012);
+
+  const peaks = isStaticAsset
+    ? [
+        { center: 50, weight: 0.45 },
+        { center: 100, weight: 0.75 + degradation * 1.4 },
+        { center: 150, weight: 0.25 + degradation * 0.9 },
+        { center: 250, weight: 0.15 + degradation * 0.5 },
+      ]
+    : [
+        { center: f1x, weight: 0.85 },
+        { center: f2x, weight: 0.30 + degradation * 0.75 },
+        { center: fBPFO, weight: 0.22 + degradation * 1.85 },
+        { center: fBPFI, weight: 0.12 + degradation * 0.95 },
+      ];
+
+  const spectrum = [];
+  for (let f = 0; f <= maxFreq; f += freqStep) {
+    let amp = 0.06 + ((f * 13) % 7) * 0.005;
+    for (const pk of peaks) {
+      const dist = Math.abs(f - pk.center);
+      if (dist < sigma * 3) {
+        amp += baseAmp * pk.weight * Math.exp(-Math.pow(dist / sigma, 2));
+      }
+    }
+    spectrum.push({ freq: f, amplitude: Math.round(amp * 100) / 100 });
+  }
+
+  const peakAmplitude = Math.max(...spectrum.map(d => d.amplitude));
+  const isoSeverity = peakAmplitude > 4.5 ? 'Zone D (Critical)'
+    : peakAmplitude > 2.8 ? 'Zone C (Warning)'
+    : peakAmplitude > 1.4 ? 'Zone B (Satisfactory)' : 'Zone A (Healthy)';
+  const severityVariant = peakAmplitude > 4.5 ? 'critical' : peakAmplitude > 2.8 ? 'warning' : 'healthy';
+
+  return {
+    machineId: machine.id,
+    isStaticAsset,
+    title: isStaticAsset ? 'Core Magnetostriction Spectrum (50 Hz)' : 'Vibration Frequency Spectrum (ISO 10816-3)',
+    subtitle: isStaticAsset
+      ? '50 Hz Fundamental · 100 Hz Core Hum · 150 Hz Harmonics'
+      : `Primary Peak ${f1x} Hz · Outer Bearing ${fBPFO} Hz · Inner ${fBPFI} Hz`,
+    isoSeverity,
+    severityVariant,
+    peakAmplitude,
+    markers: [
+      { label: isStaticAsset ? '50Hz' : '1X', freq: f1x, color: '#1d4ed8', fullLabel: isStaticAsset ? 'Mains Fundamental' : 'Shaft Unbalance' },
+      { label: isStaticAsset ? '100Hz' : '2X', freq: f2x, color: '#b45309', fullLabel: isStaticAsset ? 'Core Hum' : 'Misalignment' },
+      { label: isStaticAsset ? '150Hz' : 'BPFO', freq: fBPFO, color: '#b91c1c', fullLabel: isStaticAsset ? 'Core Harmonic' : 'Outer Bearing Race' },
+    ],
+    spectrum,
+  };
+}
+
+export function computeCurvesAnalysis(machine, telemetry) {
+  const currentHours = machine?.runtimeHours || 20000;
+  const beta = machine?.weibullBeta || 2.35;
+  const eta = machine?.weibullEta || 32000;
+
+  const maxT = Math.max(8000, Math.ceil((eta * 1.4) / 1000) * 1000);
+  const step = Math.round(maxT / 14 / 500) * 500 || 2000;
+  const weibullPoints = [];
+  for (let t = 0; t <= maxT; t += step) {
+    const prob = 1 - Math.exp(-Math.pow(t / eta, beta));
+    weibullPoints.push({ t, probPercent: Math.round(prob * 1000) / 10 });
+  }
+  const currentWeibullProb = Math.min(99.9, Math.round((1 - Math.exp(-Math.pow(currentHours / eta, beta))) * 1000) / 10);
+
+  const flowRate = telemetry?.flowRate?.value ?? 28;
+  const healthFactor = Math.max(0.5, (machine?.health ?? 85) / 100);
+  const hqPoints = [];
+  for (let q = 0; q <= 40; q += 2) {
+    hqPoints.push({
+      q,
+      headDesign: Math.round(Math.max(0, 45 - 0.022 * Math.pow(q, 2)) * 10) / 10,
+      headActual: Math.round(Math.max(0, 45 * healthFactor - 0.024 * Math.pow(q, 2)) * 10) / 10,
+      systemHead: Math.round((12 + 0.018 * Math.pow(q, 2)) * 10) / 10,
+    });
+  }
+  const liveHead = Math.max(0, Math.round((45 * healthFactor - 0.024 * Math.pow(flowRate, 2)) * 10) / 10);
+
+  return {
+    machineId: machine.id,
+    weibull: {
+      currentHours,
+      beta,
+      eta,
+      currentProb: currentWeibullProb,
+      points: weibullPoints,
+    },
+    hqCurve: {
+      flowRate,
+      liveHead,
+      points: hqPoints,
+    },
   };
 }
 

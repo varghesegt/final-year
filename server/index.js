@@ -19,6 +19,8 @@ import {
   computePrediction,
   computeReliability,
   computeWhatIf,
+  computeFftSpectrum,
+  computeCurvesAnalysis,
   buildOpcUaTags,
   buildMqttPacket,
 } from './engine/analyticsEngine.js';
@@ -379,7 +381,23 @@ app.get('/api/predictions', (_req, res) => {
     const telemetry = liveTelemetryCache[m.id] || generateMachineTelemetry(m);
     predictions[m.id] = computePrediction(m, telemetry);
   }
-  res.json({ predictions, machines: Object.fromEntries(machines.map(m => [m.id, m])) });
+  const predList = Object.values(predictions);
+  const atRiskCount = predList.filter(p => p.riskLevel === 'CRITICAL' || p.riskLevel === 'HIGH').length;
+  const earliestActionDays = predList.length ? Math.min(...predList.map(p => p.remainingUsefulLife)) : 0;
+  const avgConfidence = predList.length ? Math.round(predList.reduce((s, p) => s + p.confidence, 0) / predList.length) : 92;
+  const dailyRiskCost = predList.reduce((s, p) => s + (p.dailyDowntimeExposure || 0), 0);
+
+  res.json({
+    summary: {
+      totalAssets: machines.length,
+      atRiskCount,
+      earliestActionDays,
+      avgConfidence,
+      dailyRiskCost,
+    },
+    predictions,
+    machines: Object.fromEntries(machines.map(m => [m.id, m])),
+  });
 });
 
 app.get('/api/predictions/:id', (req, res) => {
@@ -389,8 +407,33 @@ app.get('/api/predictions/:id', (req, res) => {
   res.json(computePrediction(machine, telemetry));
 });
 
+app.get('/api/analytics/fft/:id', (req, res) => {
+  const machine = getMachineById(req.params.id);
+  if (!machine) return res.status(404).json({ error: `Machine ${req.params.id} not found` });
+  const telemetry = liveTelemetryCache[machine.id] || generateMachineTelemetry(machine);
+  res.json(computeFftSpectrum(machine, telemetry));
+});
+
+app.get('/api/analytics/curves/:id', (req, res) => {
+  const machine = getMachineById(req.params.id);
+  if (!machine) return res.status(404).json({ error: `Machine ${req.params.id} not found` });
+  const telemetry = liveTelemetryCache[machine.id] || generateMachineTelemetry(machine);
+  res.json(computeCurvesAnalysis(machine, telemetry));
+});
+
+function summarizeWorkOrders(orders) {
+  return {
+    totalCount: orders.length,
+    openCount: orders.filter(w => w.status !== 'Completed').length,
+    completedCount: orders.filter(w => w.status === 'Completed').length,
+    totalPmCost: orders.reduce((s, w) => s + (w.costComparison?.preventive?.cost || 0), 0),
+    totalSavings: orders.reduce((s, w) => s + (w.costComparison?.savings || 0), 0),
+  };
+}
+
 app.get('/api/work-orders', (_req, res) => {
-  res.json({ workOrders: getAllWorkOrders() });
+  const workOrders = getAllWorkOrders();
+  res.json({ summary: summarizeWorkOrders(workOrders), workOrders });
 });
 
 app.post('/api/work-orders', (req, res) => {
@@ -405,7 +448,8 @@ app.post('/api/work-orders', (req, res) => {
     severity: order.priority === 'CRITICAL' ? 'critical' : 'warning',
   });
   broadcastSseEvent('notifications', getAllNotifications());
-  res.status(201).json({ workOrder: order, notification: notif, workOrders: getAllWorkOrders() });
+  const workOrders = getAllWorkOrders();
+  res.status(201).json({ workOrder: order, notification: notif, summary: summarizeWorkOrders(workOrders), workOrders });
 });
 
 app.post('/api/work-orders/:id/signoff', (req, res) => {
@@ -509,7 +553,18 @@ app.get('/api/reliability', (_req, res) => {
     metrics[m.id] = computeReliability(m);
     historyByMachine[m.id] = histStmt.all(m.id);
   }
+  const allMetrics = Object.values(metrics);
+  const summary = {
+    avgMtbf: allMetrics.length ? Math.round(allMetrics.reduce((s, m) => s + m.mtbf, 0) / allMetrics.length) : 0,
+    avgMttr: allMetrics.length ? Number((allMetrics.reduce((s, m) => s + m.mttr, 0) / allMetrics.length).toFixed(1)) : 0,
+    avgAvailability: allMetrics.length ? Number((allMetrics.reduce((s, m) => s + m.availability, 0) / allMetrics.length).toFixed(1)) : 0,
+    avgOee: allMetrics.length ? Number((allMetrics.reduce((s, m) => s + m.oee, 0) / allMetrics.length).toFixed(1)) : 0,
+    totalFailures: allMetrics.reduce((s, m) => s + m.totalFailures, 0),
+    totalDowntime: Number(allMetrics.reduce((s, m) => s + m.totalDowntime, 0).toFixed(1)),
+  };
+
   res.json({
+    summary,
     metrics,
     machines: Object.fromEntries(machines.map(m => [m.id, m])),
     history: historyByMachine['P-101'] || [],
@@ -530,7 +585,54 @@ app.get('/api/lifecycle/:id', (req, res) => {
     ? { ...lcRow, events: JSON.parse(lcRow.eventsJson) }
     : null;
 
-  res.json({ machine, lifecycle, history });
+  let summary = null;
+  if (lifecycle) {
+    const ageYears = Number(((Date.now() - new Date(lifecycle.purchaseDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)).toFixed(1));
+    const remainingYears = Math.max(0, Number((lifecycle.expectedLife - ageYears).toFixed(1)));
+    const lifeUsedPct = Math.min(100, Math.round((ageYears / Math.max(1, lifecycle.expectedLife)) * 100));
+    const downtimeCost = Math.round(lifecycle.totalDowntimeHours * ((machine.downtimeCostPerHr || 20000) * 0.35));
+    const energyEstCost = Math.round((machine.ratedPowerKw || 12) * 8500);
+    const maintToValuePct = Math.round((lifecycle.totalMaintenanceCost / Math.max(1, lifecycle.currentBookValue)) * 100);
+    const replaceRecommended = maintToValuePct > 60 || lifeUsedPct > 80;
+
+    const tcoBreakdown = [
+      { name: 'Purchase', value: lifecycle.purchaseCost },
+      { name: 'Installation', value: lifecycle.installCost },
+      { name: 'Maintenance', value: lifecycle.totalMaintenanceCost },
+      { name: 'Energy (Est.)', value: energyEstCost },
+      { name: 'Downtime Cost', value: downtimeCost },
+    ];
+    const totalTco = tcoBreakdown.reduce((s, d) => s + d.value, 0);
+
+    let cumulative = lifecycle.purchaseCost + lifecycle.installCost;
+    const costTimeline = [...history]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map(entry => {
+        cumulative += entry.cost;
+        return {
+          date: entry.date,
+          label: new Date(entry.date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          cost: cumulative,
+        };
+      });
+
+    summary = {
+      ageYears,
+      remainingYears,
+      lifeUsedPct,
+      maintToValuePct,
+      replaceRecommended,
+      recommendationLabel: replaceRecommended ? 'Plan Replacement' : 'Continue Routine Care',
+      recommendationNote: replaceRecommended
+        ? 'Maintenance spending and operating age are approaching replacement threshold.'
+        : 'Asset remains economical to maintain under current preventive schedule.',
+      totalTco,
+      tcoBreakdown,
+      costTimeline,
+    };
+  }
+
+  res.json({ machine, lifecycle, summary, history });
 });
 
 app.get('/api/spare-parts', (_req, res) => {

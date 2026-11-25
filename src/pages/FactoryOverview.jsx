@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Factory, Activity, AlertTriangle, CheckCircle,
-  Gauge, TrendingUp, Cog, Waves, Wind, Zap, ArrowRight,
+  Gauge, Cog, Waves, Wind, Zap, ArrowRight,
   Package, Microscope, ChevronRight, Box, Grid, Bot
 } from 'lucide-react';
 import { ZONES as DEFAULT_ZONES, MACHINES as DEFAULT_MACHINES, getFactorySummary } from '../data/factoryData';
@@ -47,8 +47,7 @@ export default function FactoryOverview() {
     };
   }, []);
 
-  const totalPowerKw = summary.fleetPowerKw
-    ?? Math.round(Object.values(machines).reduce((s, m) => s + (m.ratedPowerKw || 12) * 0.78, 0) * 10) / 10;
+  const attentionCount = (summary.warnings || 0) + (summary.critical || 0);
 
   return (
     <div className="factory-overview">
@@ -59,16 +58,7 @@ export default function FactoryOverview() {
             Factory Floor
           </h1>
           <p className="section-header__subtitle">
-            Live equipment telemetry across six industrial zones · Fleet Draw{' '}
-            <strong className="tabular-nums" style={{ color: 'var(--text-primary)' }}>{totalPowerKw} kW</strong>
-            {summary.hourlyDowntimeExposure > 0 && (
-              <>
-                {' '}· Exposure{' '}
-                <strong className="tabular-nums" style={{ color: 'var(--status-warning)' }}>
-                  ₹{(summary.hourlyDowntimeExposure / 1000).toFixed(1)}K/hr
-                </strong>
-              </>
-            )}
+            Live equipment health and operating status across {zones.length} production zones
           </p>
         </div>
 
@@ -95,22 +85,20 @@ export default function FactoryOverview() {
           label="Total Assets"
           value={summary.totalMachines}
           icon={Activity}
-          trend="stable"
-          trendValue={`${zones.length} monitored bays`}
         />
         <MetricCard
-          label="Running"
+          label="Running Normally"
           value={summary.running}
           icon={CheckCircle}
           trend="stable"
-          trendValue="Within rated limits"
+          trendValue={`${summary.uptime ?? 98.5}% uptime`}
         />
         <MetricCard
-          label="Advisories"
-          value={summary.warnings + (summary.critical || 0)}
+          label="Needs Attention"
+          value={attentionCount}
           icon={AlertTriangle}
-          trend={summary.warnings + (summary.critical || 0) > 0 ? 'down' : 'stable'}
-          trendValue={summary.warnings + (summary.critical || 0) > 0 ? 'Inspection queued' : 'No active faults'}
+          trend={attentionCount > 0 ? 'down' : 'stable'}
+          trendValue={attentionCount > 0 ? 'Inspection queued' : 'All systems normal'}
         />
         <MetricCard
           label="Fleet Health"
@@ -118,15 +106,7 @@ export default function FactoryOverview() {
           unit="%"
           icon={Gauge}
           trend="up"
-          trendValue="Weighted index"
-        />
-        <MetricCard
-          label="Plant Availability"
-          value={summary.uptime}
-          unit="%"
-          icon={TrendingUp}
-          trend="up"
-          trendValue="90-day rolling"
+          trendValue="Overall score"
         />
       </div>
 
@@ -136,9 +116,6 @@ export default function FactoryOverview() {
         <div className="factory-floor">
           {zones.map((zone) => {
             const zoneMachines = zone.machines.map(id => machines[id]).filter(Boolean);
-            const avgHealth = zoneMachines.length
-              ? Math.round(zoneMachines.reduce((s, m) => s + m.health, 0) / zoneMachines.length)
-              : 0;
             const hasCritical = zoneMachines.some(m => m.status === 'critical');
             const hasWarning = zoneMachines.some(m => m.status === 'warning');
             const ZoneIcon = ICON_MAP[zone.icon] || Cog;
@@ -146,17 +123,11 @@ export default function FactoryOverview() {
             return (
               <div key={zone.id} className="zone-card">
                 <div className="zone-card__header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div className="zone-card__icon">
-                      <ZoneIcon size={18} strokeWidth={1.75} />
-                    </div>
-                    <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                      {zone.code || zone.id.toUpperCase()}
-                      {zone.ambientTargetC ? ` · ${zone.ambientTargetC}°C Bay` : ''}
-                    </div>
+                  <div className="zone-card__icon">
+                    <ZoneIcon size={18} strokeWidth={1.75} />
                   </div>
                   <Badge variant={hasCritical ? 'critical' : hasWarning ? 'warning' : 'healthy'}>
-                    {hasCritical ? 'Critical' : hasWarning ? 'Advisory' : 'Nominal'}
+                    {hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}
                   </Badge>
                 </div>
 
@@ -172,7 +143,7 @@ export default function FactoryOverview() {
                       <div
                         key={machine.id}
                         className="zone-card__machine-row"
-                        style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}
+                        style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'stretch', gap: '4px' }}
                         onClick={() => navigate(`/digital-twin/${machine.id}`)}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
@@ -192,9 +163,9 @@ export default function FactoryOverview() {
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                          <span>{machine.manufacturer} · {machine.id}</span>
+                          <span>{machine.id}</span>
                           <span className="tabular-nums">
-                            {liveTemp != null ? `${liveTemp}°C` : `${machine.ratedPowerKw ?? '—'} kW`}
+                            {liveTemp != null ? `${liveTemp}°C` : '—'}
                             {liveVib != null ? ` · ${liveVib} mm/s` : ''}
                           </span>
                         </div>
@@ -204,22 +175,9 @@ export default function FactoryOverview() {
                 </div>
 
                 <div className="zone-card__footer">
-                  <div className="zone-card__stat">
-                    <span className="zone-card__stat-value">
-                      {(zoneMachines[0]?.runtimeHours || 0).toLocaleString()}h
-                    </span>
-                    <span className="zone-card__stat-label">Runtime</span>
-                  </div>
-                  <div className="zone-card__stat">
-                    <span className="zone-card__stat-value" style={{
-                      color: avgHealth >= 80 ? 'var(--status-healthy)'
-                        : avgHealth >= 50 ? 'var(--status-warning)'
-                        : 'var(--status-critical)'
-                    }}>
-                      {avgHealth}%
-                    </span>
-                    <span className="zone-card__stat-label">Health</span>
-                  </div>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {zoneMachines[0]?.manufacturer} {zoneMachines[0]?.type}
+                  </span>
                   <button
                     onClick={() => navigate(`/digital-twin/${zoneMachines[0]?.id || ''}`)}
                     style={{
@@ -234,7 +192,7 @@ export default function FactoryOverview() {
                       cursor: 'pointer'
                     }}
                   >
-                    <span>Inspect</span>
+                    <span>Open Twin</span>
                     <ChevronRight size={14} strokeWidth={1.75} />
                   </button>
                 </div>

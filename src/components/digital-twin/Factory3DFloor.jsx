@@ -11,6 +11,8 @@ import {
   Layers, CheckCircle2, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { applyCentrifugalPumpPBR, setupCentrifugalPumpKinematics } from './centrifugalPumpPBR';
+import { buildHighProfileConveyor, updateConveyorKinematics } from './conveyorCAD';
+import { buildHighProfileTransformer, updateTransformerKinematics } from './transformerCAD';
 
 const MACHINE_POSITIONS = {
   'P-101': {
@@ -257,157 +259,7 @@ function buildCNCModel() {
   return group;
 }
 
-/** CONV-401: Industrial Logistics Belt Conveyor with Rollers & Geared Motor */
-function buildConveyorModel() {
-  const group = new THREE.Group();
-  const railAlum = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
-  const beltRubber = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.1 });
-  const motorBlue = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6, roughness: 0.3 });
-  const rollerSteel = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.2 });
-
-  // Dual extruded aluminum guide rails (Length 3.6m)
-  const rail1 = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.18, 0.06), railAlum);
-  rail1.position.set(0, 0.85, 0.55);
-  rail1.castShadow = true;
-  group.add(rail1);
-
-  const rail2 = rail1.clone();
-  rail2.position.set(0, 0.85, -0.55);
-  group.add(rail2);
-
-  // Main PVC / Rubber Conveyor Belt
-  const beltTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.04, 1.0), beltRubber);
-  beltTop.position.set(0, 0.88, 0);
-  beltTop.castShadow = true;
-  beltTop.receiveShadow = true;
-  group.add(beltTop);
-
-  const beltBottom = beltTop.clone();
-  beltBottom.position.set(0, 0.72, 0);
-  group.add(beltBottom);
-
-  // End Rollers / Drums
-  const rollerLeft = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.05, 20), rollerSteel);
-  rollerLeft.rotation.x = Math.PI / 2;
-  rollerLeft.position.set(-1.7, 0.8, 0);
-  group.add(rollerLeft);
-
-  const rollerRight = rollerLeft.clone();
-  rollerRight.position.set(1.7, 0.8, 0);
-  group.add(rollerRight);
-
-  // Support Legs (4 Stanchions with foot pads)
-  for (let x of [-1.3, 1.3]) {
-    for (let z of [-0.5, 0.5]) {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75), railAlum);
-      leg.position.set(x, 0.38, z);
-      leg.castShadow = true;
-      group.add(leg);
-
-      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.04), beltRubber);
-      foot.position.set(x, 0.02, z);
-      group.add(foot);
-    }
-  }
-
-  // Cross brace
-  const brace = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 0.04), railAlum);
-  brace.position.set(0, 0.35, 0);
-  group.add(brace);
-
-  // Geared Drive Motor mounted on side of drive roller
-  const motor = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.45, 16), motorBlue);
-  motor.rotation.x = Math.PI / 2;
-  motor.position.set(1.7, 0.8, 0.8);
-  group.add(motor);
-
-  const gearbox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.2), railAlum);
-  gearbox.position.set(1.7, 0.8, 0.6);
-  group.add(gearbox);
-
-  // Transported items on conveyor (2 industrial parcels)
-  const boxMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
-  const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.35, 0.4), boxMat);
-  box1.position.set(-0.6, 1.08, 0.05);
-  box1.castShadow = true;
-  group.add(box1);
-
-  const box2 = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.3, 0.35), boxMat);
-  box2.position.set(0.7, 1.05, -0.08);
-  box2.castShadow = true;
-  group.add(box2);
-
-  return group;
-}
-
-/** XFMR-302: ABB 1000kVA High-Voltage Oil-Filled Distribution Transformer */
-function buildTransformerModel() {
-  const group = new THREE.Group();
-  const tankGrey = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.7, roughness: 0.35 });
-  const finMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
-  const bushingBrown = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.2, metalness: 0.1 });
-  const brassMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
-
-  // Main oil-filled welded tank
-  const tank = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.6, 1.4), tankGrey);
-  tank.position.y = 0.95;
-  tank.castShadow = true;
-  group.add(tank);
-
-  // Base skid rails
-  const skid1 = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.12, 0.15), tankGrey);
-  skid1.position.set(0, 0.06, 0.55);
-  group.add(skid1);
-
-  const skid2 = skid1.clone();
-  skid2.position.set(0, 0.06, -0.55);
-  group.add(skid2);
-
-  // Corrugated Radiator Cooling Fin Banks (Front & Back)
-  for (let z of [0.82, -0.82]) {
-    for (let x = -0.7; x <= 0.7; x += 0.2) {
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.2, 0.24), finMat);
-      fin.position.set(x, 0.95, z);
-      group.add(fin);
-    }
-  }
-
-  // Cylindrical Oil Conservator Drum (Mounted on top)
-  const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6, 20), tankGrey);
-  drum.rotation.z = Math.PI / 2;
-  drum.position.set(0, 2.05, -0.35);
-  drum.castShadow = true;
-  group.add(drum);
-
-  // 3 High-Voltage Ceramic Fluted Bushings on top
-  for (let x of [-0.45, 0, 0.45]) {
-    const bushingGroup = new THREE.Group();
-    bushingGroup.position.set(x, 1.75, 0.35);
-
-    // Fluted ceramic cones
-    const b1 = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.45, 16), bushingBrown);
-    b1.position.y = 0.22;
-    bushingGroup.add(b1);
-
-    const b2 = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.4, 16), bushingBrown);
-    b2.position.y = 0.5;
-    bushingGroup.add(b2);
-
-    // Brass electrode terminal
-    const terminal = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25), brassMat);
-    terminal.position.y = 0.78;
-    bushingGroup.add(terminal);
-
-    group.add(bushingGroup);
-  }
-
-  // Marshalling & terminal control cabinet on side
-  const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.8, 0.6), tankGrey);
-  cabinet.position.set(0.98, 1.0, 0);
-  group.add(cabinet);
-
-  return group;
-}
+    // High-profile CAD assemblies for CONV-401 & XFMR-302 are imported from conveyorCAD.js / transformerCAD.js
 
 export function Factory3DFloor() {
   const mountRef = useRef(null);
@@ -770,8 +622,13 @@ export function Factory3DFloor() {
           }
         );
       } else if (id === 'CONV-401') {
-        const conveyor = buildConveyorModel();
-        conveyor.position.y = 0.28;
+        const conveyor = buildHighProfileConveyor();
+        const bbox = new THREE.Box3().setFromObject(conveyor);
+        const center = bbox.getCenter(new THREE.Vector3());
+        const size = bbox.getSize(new THREE.Vector3());
+        const scale = 3.25 / (Math.max(size.x, size.y, size.z) || 1);
+        conveyor.scale.set(scale, scale, scale);
+        conveyor.position.set(-center.x * scale, 0.28 - bbox.min.y * scale, -center.z * scale);
         conveyor.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
@@ -779,11 +636,19 @@ export function Factory3DFloor() {
             child.userData.machineId = id;
           }
         });
+        if (conveyor.userData.conveyorKinematics) {
+          rotatingElements.push({ type: 'conveyor', kinematics: conveyor.userData.conveyorKinematics, machineId: id });
+        }
         stationGroup.add(conveyor);
       } else {
-        const xfmr = buildTransformerModel();
-        xfmr.position.y = 0.28;
-        xfmr.rotation.y = -Math.PI / 4;
+        const xfmr = buildHighProfileTransformer();
+        const bbox = new THREE.Box3().setFromObject(xfmr);
+        const center = bbox.getCenter(new THREE.Vector3());
+        const size = bbox.getSize(new THREE.Vector3());
+        const scale = 2.85 / (Math.max(size.x, size.y, size.z) || 1);
+        xfmr.scale.set(scale, scale, scale);
+        xfmr.position.set(-center.x * scale, 0.28 - bbox.min.y * scale, -center.z * scale);
+        xfmr.rotation.y = -Math.PI / 5;
         xfmr.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
@@ -791,6 +656,9 @@ export function Factory3DFloor() {
             child.userData.machineId = id;
           }
         });
+        if (xfmr.userData.transformerKinematics) {
+          rotatingElements.push({ type: 'transformer', kinematics: xfmr.userData.transformerKinematics, machineId: id });
+        }
         stationGroup.add(xfmr);
       }
 
@@ -873,10 +741,15 @@ export function Factory3DFloor() {
         }
       });
 
-      // Animate rotating subcomponents on running machines
+      // Animate rotating subcomponents and custom CAD assemblies on running machines
       rotatingElements.forEach((el) => {
         const mach = MACHINES[el.machineId];
-        if (mach && mach.status !== 'stopped') {
+        if (!mach || mach.status === 'stopped') return;
+        if (el.type === 'conveyor') {
+          updateConveyorKinematics(el.kinematics, elapsed, false, 0, null, mach.health);
+        } else if (el.type === 'transformer') {
+          updateTransformerKinematics(el.kinematics, elapsed, false, 0, null, mach.health);
+        } else if (el.mesh) {
           if (el.axis === 'x') el.mesh.rotation.x += el.speed;
           else if (el.axis === 'y') el.mesh.rotation.y += el.speed;
           else el.mesh.rotation.z += el.speed;

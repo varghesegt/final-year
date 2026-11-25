@@ -1,9 +1,9 @@
 /* ===================================================================
-   Condition Forecasts — Failure Risk & Remaining Useful Life
+   Condition Forecasts — Asset Risk & Action Windows
    =================================================================== */
 
 import { useState, useEffect } from 'react';
-import { Activity, Clock, AlertTriangle, ShieldCheck, DollarSign, ArrowRight } from 'lucide-react';
+import { Activity, Clock, AlertTriangle, DollarSign, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MACHINES as DEFAULT_MACHINES } from '../data/factoryData';
 import { HealthRing, Badge, MetricCard } from '../components/common';
@@ -13,6 +13,7 @@ export default function Predictions() {
   const navigate = useNavigate();
   const [predictions, setPredictions] = useState({});
   const [machines, setMachines] = useState(DEFAULT_MACHINES);
+  const [summary, setSummary] = useState(null);
   const [riskFilter, setRiskFilter] = useState('all');
   const [dispatchingId, setDispatchingId] = useState(null);
 
@@ -23,6 +24,7 @@ export default function Predictions() {
       if (!active) return;
       if (data?.predictions) setPredictions(data.predictions);
       if (data?.machines) setMachines(data.machines);
+      if (data?.summary) setSummary(data.summary);
     };
     update();
     const interval = setInterval(update, 3000);
@@ -32,24 +34,16 @@ export default function Predictions() {
     };
   }, []);
 
-  const sortedMachineIds = Object.keys(machines).sort((a, b) => {
-    const riskA = predictions[a]?.failureProbability || 0;
-    const riskB = predictions[b]?.failureProbability || 0;
-    return riskB - riskA;
-  });
+  const predList = Object.keys(machines)
+    .map(id => ({ id, machine: machines[id], pred: predictions[id] }))
+    .filter(x => x.machine && x.pred)
+    .sort((a, b) => (b.pred.failureProbability || 0) - (a.pred.failureProbability || 0));
 
-  const predList = sortedMachineIds.map(id => ({ id, machine: machines[id], pred: predictions[id] })).filter(x => x.machine && x.pred);
-  const highRiskCount = predList.filter(x => {
-    const lvl = String(x.pred.riskLevel || '').toUpperCase();
-    return lvl === 'CRITICAL' || lvl === 'HIGH' || lvl === 'WARNING';
-  }).length;
-  const lowestRul = predList.length
-    ? Math.min(...predList.map(x => x.pred.rulDays ?? x.pred.remainingUsefulLife ?? 999))
-    : 0;
-  const totalDailyExposure = predList.reduce((sum, x) => {
-    const exp = x.pred.dailyDowntimeExposure ?? Math.round((x.machine.downtimeCostPerHr || 20000) * (x.pred.failureProbability / 100) * 0.35);
-    return sum + exp;
-  }, 0);
+  const highRiskCount = summary?.atRiskCount
+    ?? predList.filter(x => ['CRITICAL', 'HIGH', 'WARNING'].includes(String(x.pred.riskLevel).toUpperCase())).length;
+  const earliestDays = summary?.earliestActionDays
+    ?? (predList.length ? Math.min(...predList.map(x => x.pred.remainingUsefulLife ?? 999)) : 0);
+  const dailyExposure = summary?.dailyRiskCost ?? 0;
 
   const visibleItems = predList.filter(({ pred }) => {
     const lvl = String(pred.riskLevel || 'LOW').toUpperCase();
@@ -78,15 +72,15 @@ export default function Predictions() {
             Condition Forecasts
           </h1>
           <p className="section-header__subtitle">
-            Weibull 2-parameter hazard scoring, XAI diagnostic drivers, and Remaining Useful Life across fleet
+            Remaining useful life and maintenance priority across monitored assets
           </p>
         </div>
 
         <div className="segmented-control" role="tablist" aria-label="Filter assets by risk">
           {[
             { id: 'all', label: `All (${predList.length})` },
-            { id: 'elevated', label: `Advisory (${highRiskCount})` },
-            { id: 'nominal', label: `Nominal (${Math.max(0, predList.length - highRiskCount)})` },
+            { id: 'elevated', label: `At Risk (${highRiskCount})` },
+            { id: 'nominal', label: `Healthy (${Math.max(0, predList.length - highRiskCount)})` },
           ].map(tab => (
             <button
               key={tab.id}
@@ -101,35 +95,27 @@ export default function Predictions() {
 
       <div className="factory-stats">
         <MetricCard
-          label="Elevated Risk Assets"
+          label="Assets Needing Attention"
           value={highRiskCount}
           unit={`/ ${predList.length}`}
           icon={AlertTriangle}
           trend={highRiskCount > 0 ? 'down' : 'stable'}
-          trendValue={highRiskCount > 0 ? 'Preventive action queued' : 'Fleet nominal'}
+          trendValue={highRiskCount > 0 ? 'Schedule PM inspection' : 'All systems healthy'}
         />
         <MetricCard
-          label="Lowest Fleet RUL"
-          value={lowestRul}
+          label="Earliest Action Window"
+          value={earliestDays}
           unit="days"
           icon={Clock}
-          trend={lowestRul < 90 ? 'down' : 'stable'}
-          trendValue="Weibull p50 estimate"
-        />
-        <MetricCard
-          label="Model Confidence"
-          value={predList.length ? Math.round(predList.reduce((s, x) => s + (x.pred.confidence || 90), 0) / predList.length) : 92}
-          unit="%"
-          icon={ShieldCheck}
-          trend="up"
-          trendValue="Multi-sensor fusion"
+          trend={earliestDays < 90 ? 'down' : 'stable'}
+          trendValue="Lowest asset life left"
         />
         <MetricCard
           label="Daily Risk Exposure"
-          value={`₹${(totalDailyExposure / 1000).toFixed(1)}K`}
+          value={`₹${(dailyExposure / 1000).toFixed(1)}K`}
           icon={DollarSign}
           trend="stable"
-          trendValue="Probability-weighted"
+          trendValue="Potential downtime cost"
         />
       </div>
 
@@ -141,10 +127,7 @@ export default function Predictions() {
           const badgeVariant = isCritical ? 'critical' : isWarning ? 'warning' : 'healthy';
           const rulDays = pred.rulDays ?? pred.remainingUsefulLife ?? 0;
           const topMode = pred.topFailureMode || pred.failureModes?.[0]?.mode || 'Normal Wear';
-          const factors = pred.factors || (pred.failureModes || []).slice(0, 4).map(f => ({
-            name: f.mode,
-            contribution: f.probability,
-          }));
+          const keyDrivers = (pred.factors || []).slice(0, 2);
           const barColor = isCritical ? 'var(--status-critical)' : isWarning ? 'var(--status-warning)' : 'var(--accent-blue)';
 
           return (
@@ -158,7 +141,7 @@ export default function Predictions() {
                 <div>
                   <div className="prediction-card__machine">{machine.name}</div>
                   <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                    {machine.id} · {machine.manufacturer} · {(machine.runtimeHours || 0).toLocaleString()}h
+                    {machine.id}
                   </span>
                 </div>
                 <Badge variant={badgeVariant}>{riskLabel} RISK</Badge>
@@ -167,7 +150,7 @@ export default function Predictions() {
               <div className="prediction-card__body">
                 <HealthRing
                   value={pred.failureProbability}
-                  size={76}
+                  size={74}
                   label="Risk"
                 />
 
@@ -176,44 +159,32 @@ export default function Predictions() {
                     <Clock size={16} strokeWidth={1.75} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                     <div>
                       <div className="prediction-card__rul-value">
-                        {rulDays} <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 'var(--fw-regular)', color: 'var(--text-muted)' }}>days</span>
+                        {rulDays} <span style={{ fontSize: 'var(--fs-xs)', fontWeight: 'var(--fw-regular)', color: 'var(--text-muted)' }}>days left</span>
                       </div>
-                      <div className="prediction-card__rul-label">
-                        Remaining Useful Life · {pred.confidence ?? 90}% confidence
-                      </div>
+                      <div className="prediction-card__rul-label">Primary issue: {topMode}</div>
                     </div>
-                  </div>
-
-                  <div style={{ fontSize: 'var(--fs-xs)' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Primary Mode: </span>
-                    <span style={{ fontWeight: 'var(--fw-semibold)', color: 'var(--text-primary)' }}>
-                      {topMode}
-                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="prediction-card__factors">
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  XAI Diagnostic Drivers
+              {keyDrivers.length > 0 && (
+                <div className="prediction-card__factors">
+                  {keyDrivers.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div className="prediction-card__factor">
+                        <span className="prediction-card__factor-name">{f.name}</span>
+                        <span className="prediction-card__factor-value">{f.contribution}%</span>
+                      </div>
+                      <div className="driver-bar">
+                        <div className="driver-bar__fill" style={{ width: `${Math.min(100, f.contribution)}%`, background: barColor }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                {factors.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div className="prediction-card__factor">
-                      <span className="prediction-card__factor-name">{f.name}</span>
-                      <span className="prediction-card__factor-value">{f.contribution}%</span>
-                    </div>
-                    <div className="driver-bar">
-                      <div className="driver-bar__fill" style={{ width: `${Math.min(100, f.contribution)}%`, background: barColor }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              )}
 
               <div className="prediction-card__recommendation">
-                <div className="prediction-card__recommendation-label">
-                  Recommended Action
-                </div>
+                <div className="prediction-card__recommendation-label">Next Step</div>
                 {pred.recommendation}
               </div>
 
@@ -224,10 +195,10 @@ export default function Predictions() {
                   className="btn btn--secondary"
                   style={{ padding: '4px 10px', fontSize: '11px' }}
                 >
-                  {dispatchingId === id ? 'Dispatching...' : 'Dispatch Work Order'}
+                  {dispatchingId === id ? 'Creating...' : 'Create Work Order'}
                 </button>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: 'var(--accent-blue)' }}>
-                  Digital Twin <ArrowRight size={13} strokeWidth={1.75} />
+                  View Asset <ArrowRight size={13} strokeWidth={1.75} />
                 </span>
               </div>
             </div>

@@ -31,6 +31,14 @@ import {
   setupRobotKinematics,
   updateRobotKinematics
 } from './robotKinematics';
+import {
+  buildHighProfileConveyor,
+  updateConveyorKinematics
+} from './conveyorCAD';
+import {
+  buildHighProfileTransformer,
+  updateTransformerKinematics
+} from './transformerCAD';
 
 // ── Industrial Sub-Assembly Nomenclature & Telemetry Mapping ───────────────
 const INDUSTRIAL_COMPONENT_INFO = {
@@ -302,6 +310,12 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
     } else if (machineId === 'COMP-201' || machineType.includes('Compressor')) {
       camera.position.set(0, 1.4, 6.8);
       camera.lookAt(0, 0.15, 0);
+    } else if (machineId === 'CONV-401' || machineType.includes('Conveyor')) {
+      camera.position.set(4.8, 2.8, 5.4);
+      camera.lookAt(0, -1.0, 0);
+    } else if (machineId === 'XFMR-302' || machineType.includes('Transformer')) {
+      camera.position.set(4.8, 2.4, 5.4);
+      camera.lookAt(0, -0.5, 0);
     } else {
       camera.position.set(0, 3.5, 10);
       camera.lookAt(0, 0, 0);
@@ -355,6 +369,10 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
       controls.target.set(0, -0.6, 0);
     } else if (machineId === 'COMP-201' || machineType.includes('Compressor')) {
       controls.target.set(0, 0.15, 0);
+    } else if (machineId === 'CONV-401' || machineType.includes('Conveyor')) {
+      controls.target.set(0, -1.0, 0);
+    } else if (machineId === 'XFMR-302' || machineType.includes('Transformer')) {
+      controls.target.set(0, -0.5, 0);
     }
     controls.update();
     controlsRef.current = controls;
@@ -416,7 +434,37 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
     let targetComponentMesh = null;
     const animObjects = {};
 
-    // ── Load Real GLB Model First ─────────────────────────────────────
+    // ── Load Real GLB or High-Profile Parametric PBR CAD ──────────────
+    const isCustomHighProfile = machineId === 'CONV-401' || machineId === 'XFMR-302';
+    if (isCustomHighProfile) {
+      setLoadingModel(false);
+      setModelTypeLoaded('parametric');
+      const cadModel = machineId === 'CONV-401' ? buildHighProfileConveyor() : buildHighProfileTransformer();
+      const bbox = new THREE.Box3().setFromObject(cadModel);
+      const center = bbox.getCenter(new THREE.Vector3());
+      const size = bbox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 5.2 / maxDim;
+
+      cadModel.scale.set(scale, scale, scale);
+      const groundedY = -2.2 - (bbox.min.y * scale);
+      cadModel.position.set(-center.x * scale, groundedY, -center.z * scale);
+
+      cadModel.traverse((child) => {
+        if (child.isMesh) {
+          child.userData.originalMaterial = child.material;
+        }
+      });
+
+      rootAssemblyGroup.add(cadModel);
+      meshesRef.current.glbMesh = cadModel;
+      meshesRef.current.groundedY = groundedY;
+      meshesRef.current.glbScale = scale;
+      meshesRef.current.glbCenter = center.clone();
+      meshesRef.current.conveyorKinematics = cadModel.userData.conveyorKinematics || null;
+      meshesRef.current.transformerKinematics = cadModel.userData.transformerKinematics || null;
+      setInspectionTarget(machineId === 'CONV-401' ? '5.5 kW Helical-Bevel Gearmotor & Drive' : 'ABB 1000kVA Core & 11kV Bushings');
+    } else {
     setLoadingModel(true);
     const loader = new GLTFLoader();
     const glbPath = `${import.meta.env.BASE_URL}models/${machineId}.glb`;
@@ -548,6 +596,7 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
         buildProceduralAssembly();
       }
     );
+    }
 
     // ── Procedural CAD Assembly (Fallback / Hybrid) ───────────────────
     function buildProceduralAssembly() {
@@ -899,7 +948,12 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
           tankPressure: (machineId === 'COMP-201' || machineType.includes('Compressor')) ? `${sensors?.tankPressure ?? 7.2} bar` : undefined,
           stage1Temp: (machineId === 'COMP-201' || machineType.includes('Compressor')) ? `${sensors?.stage1Temp ?? 68.2} °C` : undefined,
           airDelivery: (machineId === 'COMP-201' || machineType.includes('Compressor')) ? `${sensors?.airDeliveryFAD ?? 850} L/min` : undefined,
-          beltTension: (machineId === 'COMP-201' || machineType.includes('Compressor')) ? `${sensors?.beltTension ?? 96}%` : undefined,
+          beltTension: (machineId === 'COMP-201' || machineId === 'CONV-401' || machineType.includes('Compressor') || machineType.includes('Conveyor')) ? `${sensors?.beltTension ?? 95}%` : undefined,
+          beltSpeed: (machineId === 'CONV-401' || machineType.includes('Conveyor')) ? `${sensors?.beltSpeedMps ?? 1.42} m/s` : undefined,
+          motorSlip: (machineId === 'CONV-401' || machineType.includes('Conveyor')) ? `${sensors?.motorSlip ?? 2.3}%` : undefined,
+          topOilTemp: (machineId === 'XFMR-302' || machineType.includes('Transformer')) ? `${sensors?.topOilTemp ?? 48.2} °C` : undefined,
+          hydrogenGas: (machineId === 'XFMR-302' || machineType.includes('Transformer')) ? `${sensors?.hydrogenGas ?? 24} ppm` : undefined,
+          breakdownVoltage: (machineId === 'XFMR-302' || machineType.includes('Transformer')) ? `${sensors?.breakdownVoltage ?? 60} kV` : undefined,
           dewPoint: (machineId === 'COMP-201' || machineType.includes('Compressor')) ? `${sensors?.dewPoint ?? 3.2} °C` : undefined,
         });
       }
@@ -1062,9 +1116,33 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
             mesh.position.z = baseZ;
           });
         }
-        if (!meshesRef.current.cncKinematics) {
+        if (!meshesRef.current.cncKinematics && !meshesRef.current.conveyorKinematics && !meshesRef.current.transformerKinematics) {
           glbLoadedMesh.position.y = meshesRef.current.groundedY + (isExploded ? 0.6 : 0);
         }
+      }
+
+      // ── CONV-401 Belt, Drum, Totes & Exploded Disassembly ──
+      if (meshesRef.current.conveyorKinematics) {
+        updateConveyorKinematics(
+          meshesRef.current.conveyorKinematics,
+          elapsed,
+          isExploded,
+          ex,
+          sensors,
+          health
+        );
+      }
+
+      // ── XFMR-302 ONAF Cooling Fans & Exploded Disassembly ──
+      if (meshesRef.current.transformerKinematics) {
+        updateTransformerKinematics(
+          meshesRef.current.transformerKinematics,
+          elapsed,
+          isExploded,
+          ex,
+          sensors,
+          health
+        );
       }
 
       // ── ROB-001 Robot Joint Kinematics & Exploded Disassembly ──
@@ -1323,6 +1401,14 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
                 controlsRef.current.target.set(0, 0.15, 0);
                 cameraRef.current.position.set(0, 1.4, 6.8);
                 cameraRef.current.lookAt(0, 0.15, 0);
+              } else if (machineId === 'CONV-401' || machineType.includes('Conveyor')) {
+                controlsRef.current.target.set(0, -1.0, 0);
+                cameraRef.current.position.set(4.8, 2.8, 5.4);
+                cameraRef.current.lookAt(0, -1.0, 0);
+              } else if (machineId === 'XFMR-302' || machineType.includes('Transformer')) {
+                controlsRef.current.target.set(0, -0.5, 0);
+                cameraRef.current.position.set(4.8, 2.4, 5.4);
+                cameraRef.current.lookAt(0, -0.5, 0);
               } else {
                 cameraRef.current.position.set(0, 3.5, 10);
                 cameraRef.current.lookAt(0, 0, 0);
@@ -1358,7 +1444,7 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
           background: modelTypeLoaded === 'glb' ? 'var(--status-healthy)' : 'var(--accent-blue)',
           boxShadow: modelTypeLoaded === 'glb' ? '0 0 6px rgba(5, 150, 105, 0.6)' : 'none'
         }} />
-        <span>Source: {modelTypeLoaded === 'glb' ? `Industrial GLB (${machineId}.glb)` : 'Parametric CAD'}</span>
+        <span>Source: {modelTypeLoaded === 'glb' ? `Industrial GLB (${machineId}.glb)` : modelTypeLoaded === 'parametric' ? 'High-Detail PBR CAD' : 'Parametric CAD'}</span>
         <span style={{ color: 'var(--text-muted)' }}>•</span>
         <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>
           {shadingMode === 'thermal' ? 'Hover surface to probe local temperature' : 'Orbit & Drag to rotate 360°'}
@@ -1429,6 +1515,21 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
             )}
             {inspectedPartData.beltTension && (
               <span style={{ color: 'var(--text-muted)' }}>Belt: <strong style={{ color: 'var(--accent-cyan)' }}>{inspectedPartData.beltTension}</strong></span>
+            )}
+            {inspectedPartData.beltSpeed && (
+              <span style={{ color: 'var(--text-muted)' }}>Speed: <strong style={{ color: 'var(--accent-blue)' }}>{inspectedPartData.beltSpeed}</strong></span>
+            )}
+            {inspectedPartData.motorSlip && (
+              <span style={{ color: 'var(--text-muted)' }}>Slip: <strong style={{ color: 'var(--accent-amber)' }}>{inspectedPartData.motorSlip}</strong></span>
+            )}
+            {inspectedPartData.topOilTemp && (
+              <span style={{ color: 'var(--text-muted)' }}>Top Oil: <strong style={{ color: 'var(--accent-amber)' }}>{inspectedPartData.topOilTemp}</strong></span>
+            )}
+            {inspectedPartData.hydrogenGas && (
+              <span style={{ color: 'var(--text-muted)' }}>DGA H₂: <strong style={{ color: 'var(--accent-cyan)' }}>{inspectedPartData.hydrogenGas}</strong></span>
+            )}
+            {inspectedPartData.breakdownVoltage && (
+              <span style={{ color: 'var(--text-muted)' }}>BDV: <strong style={{ color: 'var(--status-healthy)' }}>{inspectedPartData.breakdownVoltage}</strong></span>
             )}
             {inspectedPartData.dewPoint && (
               <span style={{ color: 'var(--text-muted)' }}>Dew Point: <strong style={{ color: 'var(--status-healthy)' }}>{inspectedPartData.dewPoint}</strong></span>

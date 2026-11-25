@@ -21,15 +21,16 @@ export const MACHINE_THERMAL_PROBES = {
     { id: 'air_tank', name: 'Air Receiver Pressure Vessel Tank (Heat Sink)', pos: [0.0, -1.0, 0.0], radius: 2.2, key: 'ambientTemp' },
   ],
   'CONV-401': [
-    { id: 'gearbox', name: 'Helical Reducer Gearbox & Motor', pos: [-3.6, -0.6, 1.5], radius: 2.0, key: 'bearingDE' },
-    { id: 'head_pulley', name: 'Head Drive Pulley Pillow Block Bearing', pos: [3.6, -0.3, 0.0], radius: 1.6, key: 'bearingNDE' },
-    { id: 'belt_friction', name: 'Main Slider Bed Friction Zone', pos: [0.0, -0.3, 0.0], radius: 3.5, key: 'temperature' },
+    { id: 'gearbox', name: 'SEW Helical Reducer Gearbox & 5.5kW Motor', pos: [2.1, -1.1, 0.85], radius: 1.5, key: 'bearingDE' },
+    { id: 'head_pulley', name: 'Head Drive Pulley & Timken Pillow Bearing', pos: [2.35, -1.1, -0.55], radius: 1.3, key: 'bearingNDE' },
+    { id: 'belt_friction', name: 'Cleated Urethane Belt & Slider Bed Zone', pos: [0.0, -1.05, 0.0], radius: 2.2, key: 'temperature' },
+    { id: 'tail_drum', name: 'Tail Crowned Tension Pulley (Cold End)', pos: [-2.3, -1.15, 0.0], radius: 1.4, key: 'ambientTemp' },
   ],
   'XFMR-302': [
-    { id: 'winding_core', name: 'High-Voltage Winding Hotspot (IEC 60076-7)', pos: [0.0, 0.0, 0.0], radius: 2.4, key: 'bearingDE' },
-    { id: 'top_oil', name: 'Top Dielectric Mineral Oil Layer', pos: [0.0, 1.4, 0.0], radius: 2.2, key: 'temperature' },
-    { id: 'radiator_l', name: 'Radiator Natural Convection Bank L', pos: [-2.5, -0.2, 0.0], radius: 1.8, key: 'ambientTemp' },
-    { id: 'radiator_r', name: 'Radiator Natural Convection Bank R', pos: [2.5, -0.2, 0.0], radius: 1.8, key: 'ambientTemp' },
+    { id: 'winding_core', name: '11kV/415V Copper Core Hotspot (IEC 60076-7)', pos: [0.0, -0.8, 0.0], radius: 1.8, key: 'bearingDE' },
+    { id: 'top_oil', name: 'Top Mineral Oil & 11kV Bushing Flange', pos: [0.0, 0.25, 0.0], radius: 1.6, key: 'temperature' },
+    { id: 'radiator_l', name: 'ONAF Cooling Radiator Bank (Left)', pos: [-1.75, -0.85, 0.0], radius: 1.3, key: 'bearingNDE' },
+    { id: 'radiator_r', name: 'ONAF Cooling Radiator Bank (Right)', pos: [1.75, -0.85, 0.0], radius: 1.3, key: 'ambientTemp' },
   ],
   'ROB-001': [
     { id: 'j2_shoulder', name: 'J2 Shoulder High-Torque Servo Motor & Harmonic Drive', pos: [0.0, -0.5, -0.8], radius: 1.5, key: 'bearingDE' },

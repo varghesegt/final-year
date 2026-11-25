@@ -186,13 +186,44 @@ export async function fetchMachinePrediction(machineId) {
   }
 }
 
-export async function fetchWorkOrders() {
+export async function fetchWorkOrdersBundle() {
   try {
     const data = await requestJson('/api/work-orders');
-    return data.workOrders || [];
+    const orders = data.workOrders || [];
+    return {
+      summary: data.summary || {
+        openCount: orders.filter(w => w.status !== 'Completed').length,
+        completedCount: orders.filter(w => w.status === 'Completed').length,
+        totalPmCost: orders.reduce((s, w) => s + (w.costComparison?.preventive?.cost || 0), 0),
+        totalSavings: orders.reduce((s, w) => s + (w.costComparison?.savings || 0), 0),
+      },
+      workOrders: orders,
+    };
   } catch {
-    return getActiveWorkOrders();
+    const orders = getActiveWorkOrders();
+    return {
+      summary: {
+        openCount: orders.length,
+        completedCount: 0,
+        totalPmCost: orders.reduce((s, w) => s + (w.costComparison?.preventive?.cost || 0), 0),
+        totalSavings: orders.reduce((s, w) => s + (w.costComparison?.savings || 0), 0),
+      },
+      workOrders: orders,
+    };
   }
+}
+
+export async function fetchWorkOrders() {
+  const bundle = await fetchWorkOrdersBundle();
+  return bundle.workOrders;
+}
+
+export async function fetchFftSpectrum(machineId) {
+  return requestJson(`/api/analytics/fft/${encodeURIComponent(machineId)}`);
+}
+
+export async function fetchCurvesAnalysis(machineId) {
+  return requestJson(`/api/analytics/curves/${encodeURIComponent(machineId)}`);
 }
 
 export async function createWorkOrder(machineId) {
