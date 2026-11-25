@@ -104,7 +104,7 @@ export function SignaturePad({ onSign, width = 420, height = 140 }) {
           position: 'absolute', bottom: '8px', left: '20px',
           fontSize: '10px', color: '#94a3b8', pointerEvents: 'none'
         }}>
-          ✕ Sign above the line (Draw with mouse or touchscreen)
+          Sign above the line
         </div>
       </div>
 

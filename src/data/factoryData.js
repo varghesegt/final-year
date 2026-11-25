@@ -65,10 +65,20 @@ export const MACHINES = {
     zone: 'pump-room',
     manufacturer: 'KSB',
     model: 'Etanorm SYT 065-040-250',
+    serialNumber: 'KSB-IN-19-04821',
     installDate: '2019-06-12',
     health: 82,
     status: 'warning',
     criticality: 'critical',
+    ratedRpm: 1450,
+    ratedPowerKw: 11.0,
+    ratedVoltageV: 415,
+    ratedCurrentA: 19.8,
+    runtimeHours: 28450,
+    downtimeCostPerHr: 28500,
+    isoClass: 'ISO 10816-3 Class II (Medium / Flexible Base)',
+    bearingSpec: 'SKF 6308-2Z / NU 308 ECP',
+    bearingGeometry: { balls: 8, bpfoMult: 3.06, bpfiMult: 4.94, bsfMult: 1.98, ftfMult: 0.38 },
   },
   'CNC-001': {
     id: 'CNC-001',
@@ -77,10 +87,20 @@ export const MACHINES = {
     zone: 'cnc-shop',
     manufacturer: 'Bridgeport / DMG Mori',
     model: 'Series II Heavy Duty Vertical Mill (ISO 40)',
+    serialNumber: 'DMG-20-11294',
     installDate: '2020-03-15',
     health: 94,
     status: 'running',
     criticality: 'high',
+    ratedRpm: 4200,
+    ratedPowerKw: 18.5,
+    ratedVoltageV: 415,
+    ratedCurrentA: 32.0,
+    runtimeHours: 19620,
+    downtimeCostPerHr: 36000,
+    isoClass: 'ISO 10816-3 Class III / Precision Spindle',
+    bearingSpec: 'NSK 7014C-TR-P4S Angular Contact',
+    bearingGeometry: { balls: 20, bpfoMult: 8.62, bpfiMult: 11.38, bsfMult: 3.84, ftfMult: 0.43 },
   },
   'COMP-201': {
     id: 'COMP-201',
@@ -89,10 +109,20 @@ export const MACHINES = {
     zone: 'compressor-room',
     manufacturer: 'Atlas Copco',
     model: 'Automan AT Series (200L ASME Receiver)',
+    serialNumber: 'ATC-20-77402',
     installDate: '2020-09-18',
     health: 91,
     status: 'running',
     criticality: 'high',
+    ratedRpm: 1480,
+    ratedPowerKw: 22.0,
+    ratedVoltageV: 415,
+    ratedCurrentA: 38.5,
+    runtimeHours: 22140,
+    downtimeCostPerHr: 24000,
+    isoClass: 'ISO 10816-3 Class III (Rigid Mount)',
+    bearingSpec: 'FAG 32210-A Tapered Roller',
+    bearingGeometry: { balls: 19, bpfoMult: 7.98, bpfiMult: 11.02, bsfMult: 3.42, ftfMult: 0.42 },
   },
   'CONV-401': {
     id: 'CONV-401',
@@ -100,11 +130,21 @@ export const MACHINES = {
     type: 'Belt Conveyor',
     zone: 'conveyor-line',
     manufacturer: 'Dorner',
-    model: '2200 Series',
+    model: '2200 Series Modular Heavy Conveyor',
+    serialNumber: 'DRN-19-33189',
     installDate: '2019-11-30',
     health: 85,
     status: 'running',
     criticality: 'medium',
+    ratedRpm: 960,
+    ratedPowerKw: 5.5,
+    ratedVoltageV: 415,
+    ratedCurrentA: 10.6,
+    runtimeHours: 24980,
+    downtimeCostPerHr: 19500,
+    isoClass: 'ISO 10816-3 Class I (Small Drive <15 kW)',
+    bearingSpec: 'Timken UC207-20 Pillow Block',
+    bearingGeometry: { balls: 9, bpfoMult: 3.56, bpfiMult: 5.44, bsfMult: 2.32, ftfMult: 0.39 },
   },
   'XFMR-302': {
     id: 'XFMR-302',
@@ -112,11 +152,21 @@ export const MACHINES = {
     type: 'Transformer',
     zone: 'utilities',
     manufacturer: 'ABB',
-    model: 'Oil Distribution 1000kVA',
+    model: 'Oil Distribution 1000kVA (ONAN)',
+    serialNumber: 'ABB-18-90211',
     installDate: '2018-02-20',
     health: 88,
     status: 'running',
     criticality: 'critical',
+    ratedRpm: 0,
+    ratedPowerKw: 1000.0,
+    ratedVoltageV: 11000,
+    ratedCurrentA: 52.5,
+    runtimeHours: 51240,
+    downtimeCostPerHr: 54000,
+    isoClass: 'IEC 60076 / IEEE C57.104 Oil Transformer',
+    bearingSpec: 'Static Magnetic Core (50Hz) / Buchholz Relay',
+    bearingGeometry: { balls: 0, bpfoMult: 2.0, bpfiMult: 3.0, bsfMult: 5.0, ftfMult: 1.0 },
   },
   'ROB-001': {
     id: 'ROB-001',
@@ -125,10 +175,20 @@ export const MACHINES = {
     zone: 'robotic-cell',
     manufacturer: 'KUKA / FANUC Robotics',
     model: 'KR 210 R2700 Heavy Payload 6-Axis Manipulator',
+    serialNumber: 'KUK-21-55803',
     installDate: '2021-04-10',
     health: 96,
     status: 'running',
     criticality: 'critical',
+    ratedRpm: 1800,
+    ratedPowerKw: 14.2,
+    ratedVoltageV: 400,
+    ratedCurrentA: 24.5,
+    runtimeHours: 14820,
+    downtimeCostPerHr: 42000,
+    isoClass: 'ISO 9283 Repeatability / Harmonic Reducer',
+    bearingSpec: 'Nabtesco RV-320E Crossed Roller',
+    bearingGeometry: { balls: 24, bpfoMult: 10.4, bpfiMult: 13.6, bsfMult: 4.15, ftfMult: 0.43 },
   },
 };
 
@@ -167,11 +227,13 @@ export function generateSensorData(machineId) {
   const vibEnvelope = Math.round((Math.max(0.1, 0.25 + degradation * 3.6 + cyclic(4, 0.2) + noise(0.15))) * 100) / 100;
   const crestFactor = Math.round((vibPeak / Math.max(0.1, vibRMS)) * 10) / 10;
 
+  const ratedRpm = machine.ratedRpm ?? 1450;
+  const ratedCurr = machine.ratedCurrentA ?? 18;
   const basePressure = 4.5 - degradation * 1.5 + cyclic(12, 0.2) + noise(0.1);
   const baseFlow = 30 - degradation * 8 + cyclic(15, 0.5) + noise(0.3);
-  const baseRPM = 1450 + degradation * 50 + cyclic(6, 10) + noise(5);
-  const baseCurrent = 12 + degradation * 8 + cyclic(10, 0.5) + noise(0.3);
-  const baseEfficiency = 95 - degradation * 20 + noise(0.5);
+  const baseRPM = ratedRpm > 0 ? ratedRpm + degradation * 50 + cyclic(6, 10) + noise(5) : 0;
+  const baseCurrent = ratedCurr * (0.76 + degradation * 0.22) + cyclic(10, 0.4) + noise(0.25);
+  const baseEfficiency = 95 - degradation * 16 + noise(0.4);
 
   const npshReq = 2.8;
   const npshAvail = Math.round((Math.max(1.2, 5.4 - degradation * 2.8 - cyclic(10, 0.3) + noise(0.15))) * 10) / 10;
@@ -179,7 +241,9 @@ export function generateSensorData(machineId) {
   const cavitationRisk = npshMargin < 0.5 ? (npshMargin < 0.1 ? 'CRITICAL' : 'WARNING') : 'NORMAL';
 
   const powerFactor = Math.round((Math.min(0.94, Math.max(0.72, 0.89 - degradation * 0.12 + noise(0.02)))) * 100) / 100;
-  const activePower = Math.round((Math.sqrt(3) * 415 * baseCurrent * powerFactor / 1000) * 10) / 10;
+  const activePower = machineId === 'XFMR-302'
+    ? Math.round((565 + cyclic(12, 42) + noise(14)) * 10) / 10
+    : Math.round((Math.sqrt(3) * (machine.ratedVoltageV || 415) * baseCurrent * powerFactor / 1000) * 10) / 10;
 
   // Machine-specific parameters
   let specifics = {};
@@ -713,10 +777,13 @@ export function generateHistoricalData(machineId, days = 30) {
     data.push({
       date: date.toISOString().split('T')[0],
       dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      temperature: Math.round((35 + dayDegradation * 40 + noise(3)) * 10) / 10,
-      vibration: Math.round((0.5 + dayDegradation * 4 + noise(0.4)) * 100) / 100,
-      pressure: Math.round((4.5 - dayDegradation * 1.2 + noise(0.2)) * 100) / 100,
-      efficiency: Math.round((95 - dayDegradation * 18 + noise(1)) * 10) / 10,
+      temperature: Math.round((35 + dayDegradation * 40 + noise(2)) * 10) / 10,
+      bearingDE: Math.round((42 + dayDegradation * 44 + noise(2)) * 10) / 10,
+      vibration: Math.round((0.5 + dayDegradation * 4 + noise(0.3)) * 100) / 100,
+      vibrationEnvelope: Math.round((0.3 + dayDegradation * 3.5 + noise(0.2)) * 100) / 100,
+      pressure: Math.round((4.5 - dayDegradation * 1.2 + noise(0.15)) * 100) / 100,
+      efficiency: Math.round((95 - dayDegradation * 16 + noise(0.8)) * 10) / 10,
+      activePowerKw: machineId === 'XFMR-302' ? Math.round(560 + noise(25)) : Math.round(((machine.ratedPowerKw || 11) * (0.76 + dayDegradation * 0.15)) * 10) / 10,
       health: Math.round(dayHealth),
     });
   }

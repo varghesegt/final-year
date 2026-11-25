@@ -1103,6 +1103,8 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
       domEl.removeEventListener('mousemove', handlePointerMove);
       domEl.removeEventListener('mouseleave', handlePointerLeave);
       controls.dispose();
+      pmremGenerator.dispose();
+      roomEnv.dispose?.();
       renderer.dispose();
     };
   }, [machineId, machineType]);
@@ -1273,55 +1275,30 @@ export function Machine3DViewer({ machine, sensors, health = 85, isSimulation = 
         display: 'flex', alignItems: 'center', gap: '8px', zIndex: 11,
         maxWidth: 'calc(100% - 24px)', flexWrap: 'wrap', justifyContent: 'flex-end'
       }}>
-        {/* Shading Mode Toggle Pill */}
-        <div style={{
-          display: 'flex', background: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(10px)',
-          borderRadius: 'var(--radius-md)', padding: '3px',
-          border: '1px solid var(--border-default)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-        }}>
+        {/* Shading Mode Toggle */}
+        <div className="segmented-control" style={{ background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(8px)' }}>
           <button
             onClick={() => setShadingMode('cad')}
-            style={{
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer',
-              background: shadingMode === 'cad' ? 'var(--accent-blue)' : 'transparent',
-              color: shadingMode === 'cad' ? '#ffffff' : 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', gap: '5px',
-              transition: 'all 0.15s ease'
-            }}
+            className={`segmented-control__btn ${shadingMode === 'cad' ? 'segmented-control__btn--active' : ''}`}
           >
-            <Box size={13} />
-            PBR CAD
+            <Box size={13} strokeWidth={1.75} />
+            <span>PBR CAD</span>
           </button>
 
           <button
             onClick={() => setShadingMode('thermal')}
-            style={{
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer',
-              background: shadingMode === 'thermal' ? 'var(--accent-amber)' : 'transparent',
-              color: shadingMode === 'thermal' ? '#ffffff' : 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', gap: '5px',
-              transition: 'all 0.15s ease'
-            }}
+            className={`segmented-control__btn ${shadingMode === 'thermal' ? 'segmented-control__btn--active' : ''}`}
           >
-            <Flame size={13} />
-            FEA Thermal Heatmap
+            <Flame size={13} strokeWidth={1.75} />
+            <span>Thermal</span>
           </button>
 
           <button
             onClick={() => setShadingMode('exploded')}
-            style={{
-              padding: '6px 12px', fontSize: '11px', fontWeight: 600,
-              borderRadius: 'var(--radius-xs)', border: 'none', cursor: 'pointer',
-              background: shadingMode === 'exploded' ? 'var(--accent-purple)' : 'transparent',
-              color: shadingMode === 'exploded' ? '#ffffff' : 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', gap: '5px',
-              transition: 'all 0.15s ease'
-            }}
+            className={`segmented-control__btn ${shadingMode === 'exploded' ? 'segmented-control__btn--active' : ''}`}
           >
-            <Layers size={13} />
-            Exploded CAD
+            <Layers size={13} strokeWidth={1.75} />
+            <span>Exploded</span>
           </button>
         </div>
 

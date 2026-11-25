@@ -1,71 +1,74 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Sparkles, ChevronRight, Play, RotateCcw, AlertTriangle, CheckCircle, Info, X, Zap, Menu } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Bell, ChevronRight, AlertTriangle, Info, X, Menu } from 'lucide-react';
+import { NOTIFICATIONS } from '../../data/factoryData';
 import {
-  getFactorySummary, NOTIFICATIONS, markNotificationsRead,
-  subscribeToNotifications, triggerFailureSimulation, resetMachineHealth,
-  isSimulationActive
-} from '../../data/factoryData';
+  fetchNotifications,
+  markAllNotificationsRead,
+  subscribeToNotificationsFeed,
+  subscribeToLiveStream,
+} from '../../services/api';
 
 const PAGE_TITLES = {
   '/': 'Factory Overview',
   '/digital-twin': 'Machine Digital Twin',
-  '/predictions': 'Predictive Maintenance',
-  '/work-orders': 'Decision Engine',
-  '/reliability': 'Reliability Analytics',
+  '/predictions': 'Condition Forecasts',
+  '/work-orders': 'Work Orders',
+  '/reliability': 'Reliability Metrics',
   '/lifecycle': 'Asset Lifecycle',
-  '/gateway': 'IoT Gateway & SCADA',
+  '/gateway': 'Telemetry Gateway',
 };
+
+function resolvePageTitle(pathname) {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const prefix = Object.keys(PAGE_TITLES).find(k => k !== '/' && pathname.startsWith(k));
+  return prefix ? PAGE_TITLES[prefix] : 'Operations';
+}
 
 export default function Topbar({ onToggleSidebar = () => {} }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [time, setTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [simulating, setSimulating] = useState(isSimulationActive());
+  const [backendConnected, setBackendConnected] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const summary = getFactorySummary();
-
   useEffect(() => {
+    let active = true;
+    fetchNotifications().then(list => {
+      if (active && Array.isArray(list)) setNotifications(list);
+    });
+
     const interval = setInterval(() => setTime(new Date()), 1000);
-    const unsubscribe = subscribeToNotifications((updatedNotifs) => {
+    const unsubNotif = subscribeToNotificationsFeed((updatedNotifs) => {
       setNotifications(updatedNotifs);
       if (updatedNotifs.length > 0 && !updatedNotifs[0].read) {
         setToast(updatedNotifs[0]);
         setTimeout(() => setToast(null), 4000);
       }
     });
+    const unsubStream = subscribeToLiveStream((snap) => {
+      setBackendConnected(Boolean(snap?.connected));
+    });
+
     return () => {
+      active = false;
       clearInterval(interval);
-      unsubscribe();
+      unsubNotif();
+      unsubStream();
     };
   }, []);
 
-  const handleToggleSimulation = () => {
-    if (simulating) {
-      resetMachineHealth('P-101');
-      setSimulating(false);
-    } else {
-      setSimulating(true);
-      triggerFailureSimulation('P-101', 20, null, () => {
-        setSimulating(false);
-      });
-      if (location.pathname !== '/digital-twin') {
-        navigate('/digital-twin');
-      }
+  const handleOpenNotifications = async () => {
+    const nextOpen = !showNotifications;
+    setShowNotifications(nextOpen);
+    if (nextOpen) {
+      const updated = await markAllNotificationsRead();
+      setNotifications(updated);
     }
   };
 
-  const handleOpenNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (!showNotifications) {
-      markNotificationsRead();
-    }
-  };
-
-  const pageTitle = PAGE_TITLES[location.pathname] || 'Dashboard';
+  const pageTitle = resolvePageTitle(location.pathname);
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
@@ -77,42 +80,52 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
             onClick={onToggleSidebar}
             aria-label="Toggle navigation menu"
           >
-            <Menu size={20} />
+            <Menu size={16} strokeWidth={1.75} />
           </button>
           <div className="topbar__breadcrumb">
-            <span className="topbar__breadcrumb-root">SmartFactory</span>
-            <ChevronRight size={14} className="topbar__breadcrumb-sep" />
+            <span className="topbar__breadcrumb-root">Plant 01</span>
+            <ChevronRight size={14} strokeWidth={1.75} className="topbar__breadcrumb-sep" />
             <span className="topbar__breadcrumb-current">{pageTitle}</span>
           </div>
         </div>
 
-
         <div className="topbar__right">
+          <div
+            className="topbar__status-pill"
+            title={backendConnected ? 'Connected to telemetry database' : 'Running with local telemetry'}
+          >
+            <span
+              className="topbar__status-dot"
+              style={{
+                background: backendConnected ? 'var(--status-healthy)' : 'var(--status-warning)',
+              }}
+            />
+            <span>{backendConnected ? 'Telemetry Live' : 'Offline Mode'}</span>
+          </div>
 
-          {/* Alert Bell Button */}
           <div style={{ position: 'relative' }}>
             <button
               className="topbar__alert-btn"
-              title="Notifications & Alerts"
+              title="Notifications"
               onClick={handleOpenNotifications}
+              aria-label="Notifications"
             >
-              <Bell size={18} />
+              <Bell size={16} strokeWidth={1.75} />
               {unreadCount > 0 && (
                 <span className="topbar__alert-badge">{unreadCount}</span>
               )}
             </button>
 
-            {/* Notifications Dropdown Panel */}
             {showNotifications && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 12px)',
+                top: 'calc(100% + 8px)',
                 right: 0,
                 width: '340px',
                 background: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-xl)',
+                boxShadow: 'var(--shadow-lg)',
                 zIndex: 1000,
                 overflow: 'hidden',
               }}>
@@ -123,18 +136,18 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                 }}>
-                  <span style={{ fontWeight: 600, fontSize: '12px', color: 'var(--text-primary)' }}>
-                    Alert Notifications
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+                    Notifications
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    {notifications.length} total
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {notifications.length} logged
                   </span>
                 </div>
 
                 <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                   {notifications.length === 0 ? (
                     <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                      No notifications
+                      No alerts recorded
                     </div>
                   ) : (
                     notifications.map((item) => (
@@ -146,22 +159,22 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: '12px',
-                          background: item.read ? 'transparent' : 'rgba(59, 130, 246, 0.05)',
+                          background: item.read ? 'transparent' : 'var(--accent-blue-soft)',
                         }}
                       >
                         {item.severity === 'critical' ? (
-                          <AlertTriangle size={16} style={{ color: 'var(--status-critical)', marginTop: 2, flexShrink: 0 }} />
+                          <AlertTriangle size={16} strokeWidth={1.75} style={{ color: 'var(--status-critical)', marginTop: 2, flexShrink: 0 }} />
                         ) : item.severity === 'warning' ? (
-                          <AlertTriangle size={16} style={{ color: 'var(--status-warning)', marginTop: 2, flexShrink: 0 }} />
+                          <AlertTriangle size={16} strokeWidth={1.75} style={{ color: 'var(--status-warning)', marginTop: 2, flexShrink: 0 }} />
                         ) : (
-                          <Info size={16} style={{ color: 'var(--accent-blue)', marginTop: 2, flexShrink: 0 }} />
+                          <Info size={16} strokeWidth={1.75} style={{ color: 'var(--accent-blue)', marginTop: 2, flexShrink: 0 }} />
                         )}
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                             {item.title}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                            {item.machineId ? `Asset: ${item.machineId} • ` : ''}{item.time}
+                            {item.machineId ? `${item.machineId} · ` : ''}{item.time}
                           </div>
                         </div>
                       </div>
@@ -172,7 +185,6 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
             )}
           </div>
 
-          {/* Clock */}
           <div className="topbar__clock">
             <span className="topbar__clock-time">
               {time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -184,7 +196,6 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
         </div>
       </header>
 
-      {/* Floating Toast Notification */}
       {toast && (
         <div style={{
           position: 'fixed',
@@ -192,28 +203,30 @@ export default function Topbar({ onToggleSidebar = () => {} }) {
           right: '24px',
           zIndex: 9999,
           background: 'var(--bg-card)',
-          border: `1px solid ${toast.severity === 'critical' ? 'var(--status-critical)' : 'var(--status-warning)'}`,
+          border: '1px solid var(--border-default)',
+          borderLeft: `3px solid ${toast.severity === 'critical' ? 'var(--status-critical)' : 'var(--status-warning)'}`,
           borderRadius: 'var(--radius-md)',
-          padding: '16px',
+          padding: '12px 16px',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          boxShadow: 'var(--shadow-xl)',
+          boxShadow: 'var(--shadow-lg)',
         }}>
-          <AlertTriangle size={20} style={{ color: toast.severity === 'critical' ? 'var(--status-critical)' : 'var(--status-warning)' }} />
+          <AlertTriangle size={16} strokeWidth={1.75} style={{ color: toast.severity === 'critical' ? 'var(--status-critical)' : 'var(--status-warning)' }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)' }}>
+            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
               {toast.title}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Telemetry alert triggered in real-time
+              {toast.machineId ? `Asset ${toast.machineId}` : 'Plant alert'}
             </div>
           </div>
           <button
             onClick={() => setToast(null)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '8px' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginLeft: '8px', display: 'flex' }}
+            aria-label="Dismiss"
           >
-            <X size={14} />
+            <X size={14} strokeWidth={1.75} />
           </button>
         </div>
       )}

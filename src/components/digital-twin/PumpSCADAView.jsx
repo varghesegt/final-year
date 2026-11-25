@@ -75,7 +75,7 @@ export function PumpSCADAView({ sensors, machine }) {
             fontWeight: 700,
             color: '#38bdf8'
           }}>
-            <Radio size={13} className="animate-pulse" />
+            <Radio size={13} />
             LOOP: FIC-101 / P-101-FCV
           </div>
 

@@ -1,165 +1,175 @@
-import { useState } from 'react';
-import { Sliders, RotateCcw, AlertTriangle, ShieldCheck, Gauge, Flame, Activity, Zap } from 'lucide-react';
-import { HealthRing } from './index';
+import { useEffect, useState } from 'react';
+import { Sliders, RotateCcw } from 'lucide-react';
 
-export function WhatIfSimulator({ baseHealth = 82, baseRUL = 120, machineName = 'Centrifugal Pump #1' }) {
-  const [rpm, setRpm] = useState(1450);
+export function WhatIfSimulator({
+  machineId = 'P-101',
+  baseRUL = 120,
+  ratedRpm = 1450,
+  machineName = 'Centrifugal Pump #1'
+}) {
+  const isStaticAsset = machineId === 'XFMR-302' || ratedRpm === 0;
+  const nominalRpm = ratedRpm > 0 ? ratedRpm : 1450;
+
+  const [rpm, setRpm] = useState(nominalRpm);
   const [ambientTemp, setAmbientTemp] = useState(32);
   const [loadPercent, setLoadPercent] = useState(100);
-  const [lubrication, setLubrication] = useState('good'); // 'poor' | 'good' | 'premium'
+  const [lubrication, setLubrication] = useState('good');
 
-  // Physics calculation
+  useEffect(() => {
+    setRpm(nominalRpm);
+    setAmbientTemp(machineId === 'CNC-001' ? 25 : 32);
+    setLoadPercent(100);
+    setLubrication('good');
+  }, [machineId, nominalRpm]);
+
+  const minRpm = Math.max(400, Math.round((nominalRpm * 0.55) / 50) * 50);
+  const maxRpm = Math.round((nominalRpm * 1.35) / 50) * 50;
+  const rpmStep = nominalRpm >= 3000 ? 100 : 50;
+
   const lubeFactor = lubrication === 'poor' ? 0.6 : lubrication === 'good' ? 1.0 : 1.35;
-  const speedRatio = rpm / 1450;
+  const speedRatio = isStaticAsset ? 1.0 : rpm / nominalRpm;
   const loadRatio = loadPercent / 100;
 
-  // Mechanical Wear Factor Kw (Archard's wear / ISO bearing life formula L10 = (C/P)^p)
-  const wearAcceleration = Math.round((Math.pow(loadRatio, 2.5) * Math.pow(speedRatio, 1.4) / lubeFactor) * 100) / 100;
+  // Static transformer follows IEEE C57.91 thermal aging; rotating assets follow Archard + L10 fatigue
+  const wearAcceleration = isStaticAsset
+    ? Math.round((Math.pow(loadRatio, 1.8) * Math.pow(2, (ambientTemp - 32) / 12) / lubeFactor) * 100) / 100
+    : Math.round((Math.pow(loadRatio, 2.5) * Math.pow(speedRatio, 1.4) / lubeFactor) * 100) / 100;
 
-  // Projected operating temperature (°C)
-  const projectedTemp = Math.round((ambientTemp + 22 * speedRatio + 18 * loadRatio * (lubrication === 'poor' ? 1.4 : 1.0)) * 10) / 10;
+  const projectedTemp = isStaticAsset
+    ? Math.round((ambientTemp + 24 * Math.pow(loadRatio, 1.6) * (lubrication === 'poor' ? 1.35 : 1.0)) * 10) / 10
+    : Math.round((ambientTemp + 20 * speedRatio + 18 * loadRatio * (lubrication === 'poor' ? 1.4 : 1.0)) * 10) / 10;
 
-  // Adjusted Remaining Useful Life (RUL)
-  const adjustedRUL = Math.max(5, Math.round(baseRUL / wearAcceleration));
-
-  // Projected Failure Probability
+  const adjustedRUL = Math.max(5, Math.round(baseRUL / Math.max(0.2, wearAcceleration)));
   const projectedRisk = Math.min(98, Math.max(5, Math.round((wearAcceleration * 28 + (projectedTemp > 75 ? 30 : 0)) * 10) / 10));
 
   const handleReset = () => {
-    setRpm(1450);
-    setAmbientTemp(32);
+    setRpm(nominalRpm);
+    setAmbientTemp(machineId === 'CNC-001' ? 25 : 32);
     setLoadPercent(100);
     setLubrication('good');
   };
 
   return (
     <div style={{ width: '100%' }}>
-      {/* Title & Reset */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sliders size={14} style={{ color: 'var(--accent-purple)' }} />
-            Operational Stress & "What-If" Digital Sandbox
+          <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sliders size={16} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            Operating Envelope Sensitivity ({machineName})
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            Manipulate operational variables to project ISO accelerated degradation and revised RUL
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {isStaticAsset
+              ? 'Simulate MVA load factor, substation ambient temperature, and dielectric oil condition (IEEE C57.91).'
+              : 'Adjust shaft speed, radial load, ambient temperature, and lubricant grade to evaluate Archard wear impact.'}
           </div>
         </div>
 
-        <button
-          onClick={handleReset}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '4px 10px', borderRadius: 'var(--radius-sm)',
-            background: '#ffffff', border: '1px solid var(--border-default)',
-            color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, cursor: 'pointer'
-          }}
-        >
-          <RotateCcw size={12} />
+        <button onClick={handleReset} className="btn btn--secondary">
+          <RotateCcw size={13} strokeWidth={1.75} />
           Reset Nominal
         </button>
       </div>
 
-      {/* Main Grid: Controls Left, Live Projections Right */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
         gap: '20px',
         alignItems: 'start'
       }}>
-        {/* Left Interactive Sliders */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--bg-primary)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-          {/* Slider 1: RPM */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Operating Speed</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-blue)' }}>{rpm} RPM</span>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          background: 'var(--bg-tertiary)',
+          padding: '16px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)'
+        }}>
+          {isStaticAsset ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', paddingBottom: '4px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Supply Frequency</span>
+              <span className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>50.0 Hz (Static Core)</span>
             </div>
-            <input
-              type="range"
-              min="800"
-              max="2200"
-              step="50"
-              value={rpm}
-              onChange={(e) => setRpm(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-              <span>800 RPM (Low)</span>
-              <span>1450 (Nominal)</span>
-              <span>2200 RPM (Overdrive)</span>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Operating Speed</span>
+                <span className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>{rpm} RPM</span>
+              </div>
+              <input
+                type="range" min={minRpm} max={maxRpm} step={rpmStep} value={rpm}
+                onChange={(e) => setRpm(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+                <span>{minRpm} RPM</span>
+                <span>{nominalRpm} Nominal</span>
+                <span>{maxRpm} RPM</span>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Slider 2: Dynamic Radial Load */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Dynamic Radial Load</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: loadPercent > 120 ? 'var(--status-critical)' : 'var(--accent-cyan)' }}>
-                {loadPercent}% {loadPercent > 100 ? '(Overload)' : ''}
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{isStaticAsset ? 'Transformer MVA Load' : 'Radial / Process Load'}</span>
+              <span className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: loadPercent > 120 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                {loadPercent}%
               </span>
             </div>
             <input
-              type="range"
-              min="50"
-              max="160"
-              step="5"
-              value={loadPercent}
+              type="range" min="50" max="150" step="5" value={loadPercent}
               onChange={(e) => setLoadPercent(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-              <span>50% (Idle)</span>
-              <span>100% (Rated)</span>
-              <span>160% (Severe)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <span>50% Idle</span>
+              <span>100% Rated</span>
+              <span>150% Peak</span>
             </div>
           </div>
 
-          {/* Slider 3: Ambient Temperature */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Ambient Environmental Temp</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: ambientTemp > 42 ? 'var(--status-critical)' : 'var(--accent-amber)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Ambient Temperature</span>
+              <span className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: ambientTemp > 42 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
                 {ambientTemp}°C
               </span>
             </div>
             <input
-              type="range"
-              min="10"
-              max="55"
-              step="1"
-              value={ambientTemp}
+              type="range" min="10" max="55" step="1" value={ambientTemp}
               onChange={(e) => setAmbientTemp(Number(e.target.value))}
-              style={{ width: '100%', accentColor: 'var(--accent-amber)', cursor: 'pointer' }}
+              style={{ width: '100%', accentColor: 'var(--accent-blue)', cursor: 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-              <span>10°C (HVAC Cool)</span>
-              <span>32°C (Shop Average)</span>
-              <span>55°C (Extreme Heat)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <span>10°C</span>
+              <span>32°C Shop</span>
+              <span>55°C Max</span>
             </div>
           </div>
 
-          {/* Selector: Lubrication Quality */}
           <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '6px' }}>
-              Lubricant Oil Quality
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '8px' }}>
+              {isStaticAsset ? 'Dielectric Oil Condition' : 'Lubrication Condition'}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               {[
-                { id: 'poor', label: 'Degraded / Metal Debris' },
-                { id: 'good', label: 'Standard Mineral' },
-                { id: 'premium', label: 'Synthetic ISO VG 46' }
+                { id: 'poor', label: isStaticAsset ? 'Aged Oil' : 'Degraded' },
+                { id: 'good', label: 'Standard' },
+                { id: 'premium', label: isStaticAsset ? 'Fresh BDV' : 'ISO VG Synth' }
               ].map(opt => (
                 <button
                   key={opt.id}
                   onClick={() => setLubrication(opt.id)}
                   style={{
-                    padding: '6px 8px', borderRadius: 'var(--radius-sm)',
-                    fontSize: '10px', fontWeight: lubrication === opt.id ? 700 : 500,
-                    background: lubrication === opt.id ? 'rgba(124, 58, 237, 0.12)' : '#f8fafc',
-                    color: lubrication === opt.id ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                    border: `1px solid ${lubrication === opt.id ? 'var(--accent-purple)' : 'var(--border-subtle)'}`,
-                    cursor: 'pointer', textAlign: 'center'
+                    padding: '6px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '11px',
+                    fontWeight: lubrication === opt.id ? 600 : 500,
+                    background: lubrication === opt.id ? 'var(--accent-blue-soft)' : 'var(--bg-primary)',
+                    color: lubrication === opt.id ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    border: `1px solid ${lubrication === opt.id ? '#bfdbfe' : 'var(--border-default)'}`,
+                    cursor: 'pointer',
+                    textAlign: 'center'
                   }}
                 >
                   {opt.label}
@@ -169,69 +179,60 @@ export function WhatIfSimulator({ baseHealth = 82, baseRUL = 120, machineName = 
           </div>
         </div>
 
-        {/* Right Real-time Physics Output Display */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Key Output Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '10px' }}>
-            {/* Projected RUL */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PROJECTED RUL</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700, color: adjustedRUL < 30 ? 'var(--status-critical)' : 'var(--text-primary)', marginTop: '4px' }}>
-                {adjustedRUL} <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>days</span>
-              </div>
-              <div style={{ fontSize: '10px', color: adjustedRUL < baseRUL ? 'var(--status-critical)' : 'var(--status-healthy)', marginTop: '4px' }}>
-                {adjustedRUL < baseRUL ? `▼ Reduced by ${baseRUL - adjustedRUL} days` : `▲ Extended by ${adjustedRUL - baseRUL} days`}
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
+            <div className="metric-card">
+              <span className="metric-card__label">Projected RUL</span>
+              <span className="metric-card__value" style={{ color: adjustedRUL < 30 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                {adjustedRUL}<span className="metric-card__unit">days</span>
+              </span>
+              <span style={{ fontSize: '11px', color: adjustedRUL < baseRUL ? 'var(--status-critical)' : 'var(--status-healthy)' }}>
+                {adjustedRUL < baseRUL ? `-${baseRUL - adjustedRUL} days vs baseline` : `+${adjustedRUL - baseRUL} days vs baseline`}
+              </span>
             </div>
 
-            {/* Wear Acceleration Factor */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>WEAR ACCELERATION (Kw)</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700, color: wearAcceleration > 1.4 ? 'var(--status-critical)' : 'var(--accent-blue)', marginTop: '4px' }}>
-                {wearAcceleration}x
-              </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Baseline wear: 1.00x nominal
-              </div>
+            <div className="metric-card">
+              <span className="metric-card__label">{isStaticAsset ? 'Aging Factor' : 'Wear Factor (Kw)'}</span>
+              <span className="metric-card__value" style={{ color: wearAcceleration > 1.4 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                {wearAcceleration}<span className="metric-card__unit">x</span>
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1.00x nominal</span>
             </div>
 
-            {/* Projected Equilibrium Temp */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>PROJECTED THERMAL</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700, color: projectedTemp > 75 ? 'var(--status-critical)' : 'var(--accent-amber)', marginTop: '4px' }}>
-                {projectedTemp}°C
-              </div>
-              <div style={{ fontSize: '10px', color: projectedTemp > 75 ? 'var(--status-critical)' : 'var(--text-muted)', marginTop: '4px' }}>
-                {projectedTemp > 75 ? 'Exceeds winding thermal limit' : 'Safe thermal dissipation'}
-              </div>
+            <div className="metric-card">
+              <span className="metric-card__label">{isStaticAsset ? 'Winding Hotspot' : 'Equilibrium Temp'}</span>
+              <span className="metric-card__value" style={{ color: projectedTemp > 75 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                {projectedTemp}<span className="metric-card__unit">°C</span>
+              </span>
+              <span style={{ fontSize: '11px', color: projectedTemp > 75 ? 'var(--status-critical)' : 'var(--text-muted)' }}>
+                {projectedTemp > 75 ? 'Above 75°C limit' : 'Within thermal limit'}
+              </span>
             </div>
 
-            {/* Failure Risk Score */}
-            <div style={{ background: '#ffffff', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>SIMULATED RISK</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '22px', fontWeight: 700, color: projectedRisk > 60 ? 'var(--status-critical)' : 'var(--status-healthy)', marginTop: '4px' }}>
-                {projectedRisk}%
-              </div>
-              <div style={{ fontSize: '10px', color: projectedRisk > 60 ? 'var(--status-critical)' : 'var(--status-healthy)', marginTop: '4px' }}>
-                {projectedRisk > 60 ? 'Immediate PM Required' : 'Acceptable Stress Range'}
-              </div>
+            <div className="metric-card">
+              <span className="metric-card__label">Failure Risk</span>
+              <span className="metric-card__value" style={{ color: projectedRisk > 60 ? 'var(--status-critical)' : 'var(--status-healthy)' }}>
+                {projectedRisk}<span className="metric-card__unit">%</span>
+              </span>
+              <span style={{ fontSize: '11px', color: projectedRisk > 60 ? 'var(--status-critical)' : 'var(--text-muted)' }}>
+                {projectedRisk > 60 ? 'Schedule intervention' : 'Acceptable stress'}
+              </span>
             </div>
           </div>
 
-          {/* Actionable Engineering Diagnosis Box */}
           <div style={{
             padding: '12px 16px',
             borderRadius: 'var(--radius-md)',
-            background: wearAcceleration > 1.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(59, 130, 246, 0.08)',
-            border: `1px solid ${wearAcceleration > 1.5 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`,
+            background: wearAcceleration > 1.5 ? '#fef2f2' : 'var(--bg-tertiary)',
+            border: `1px solid ${wearAcceleration > 1.5 ? '#fecaca' : 'var(--border-subtle)'}`,
             fontSize: '12px',
-            color: 'var(--text-primary)',
+            color: 'var(--text-secondary)',
             lineHeight: 1.5
           }}>
-            <strong>Engineering Verdict: </strong>
+            <strong style={{ color: 'var(--text-primary)' }}>Assessment: </strong>
             {wearAcceleration > 1.5
-              ? `Running at ${loadPercent}% radial load combined with ${rpm} RPM accelerates bearing fatigue spalling by ${wearAcceleration}x. Projected temperature of ${projectedTemp}°C will cause rapid lubricant breakdown. Reduce operating speed or schedule grease replenishment within ${adjustedRUL} days.`
-              : `Operating parameters are within sustainable design envelopes. Projected RUL of ${adjustedRUL} days maintains high plant availability.`}
+              ? `Operating at ${loadPercent}% load${isStaticAsset ? '' : ` and ${rpm} RPM`} accelerates fatigue by ${wearAcceleration}x. At ${projectedTemp}°C, reduce load or service insulation/lubrication within ${adjustedRUL} days.`
+              : `Selected parameters remain within rated operating limits with a projected service life of ${adjustedRUL} days.`}
           </div>
         </div>
       </div>

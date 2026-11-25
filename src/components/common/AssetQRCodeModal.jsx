@@ -1,174 +1,140 @@
-import { QrCode, Printer, X, ShieldCheck, Factory, Cpu } from 'lucide-react';
+import { QrCode, Printer, X, Factory } from 'lucide-react';
+
+function buildMatrix(seedStr) {
+  let hash = 2166136261;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash ^= seedStr.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const size = 17;
+  const cells = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const inTopLeft = r < 5 && c < 5;
+      const inTopRight = r < 5 && c >= size - 5;
+      const inBottomLeft = r >= size - 5 && c < 5;
+      if (inTopLeft || inTopRight || inBottomLeft) continue;
+      hash = (Math.imul(hash ^ (r * 31 + c), 1664525) + 1013904223) >>> 0;
+      if ((hash & 1) === 1) cells.push({ r, c });
+    }
+  }
+  return cells;
+}
 
 export function AssetQRCodeModal({ machine, onClose }) {
   if (!machine) return null;
 
   const qrUrl = `${window.location.origin}${window.location.pathname}#/digital-twin/${machine.id}`;
-
-  const handlePrintBadge = () => {
-    window.print();
-  };
+  const dataCells = buildMatrix(qrUrl);
 
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+      background: 'rgba(17, 24, 39, 0.45)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
     }}>
       <div style={{
-        background: '#ffffff',
-        border: '1px solid var(--border-default)',
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-xl)',
-        maxWidth: '460px', width: '100%',
+        maxWidth: '420px', width: '100%',
         boxShadow: 'var(--shadow-xl)',
         overflow: 'hidden'
       }}>
-        {/* Modal Header */}
         <div style={{
-          padding: '16px 20px',
+          padding: '14px 20px',
           borderBottom: '1px solid var(--border-subtle)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: '#f8fafc'
+          background: 'var(--bg-tertiary)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <QrCode size={20} style={{ color: 'var(--accent-blue)' }} />
-            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
-              Industrial Asset Identification Tag
+            <QrCode size={16} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+              Asset Identification Tag
             </span>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' }}
+            aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={16} strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Physical Asset Tag Badge View */}
-        <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
           <div style={{
-            border: '2px solid #0f172a',
-            borderRadius: '12px',
-            padding: '20px',
-            background: '#ffffff',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+            border: '1.5px solid #111827',
+            borderRadius: '10px',
+            padding: '16px',
+            background: '#ffffff'
           }}>
-            {/* Tag Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #111827', paddingBottom: '10px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Factory size={18} style={{ color: 'var(--accent-blue)' }} />
-                <span style={{ fontWeight: 900, fontSize: '13px', letterSpacing: '0.05em', color: '#0f172a' }}>SMARTFACTORY AI</span>
+                <Factory size={15} strokeWidth={1.75} />
+                <span style={{ fontWeight: 700, fontSize: '12px', letterSpacing: '0.04em', color: '#111827' }}>SMARTFACTORY</span>
               </div>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: '#0f172a', color: '#ffffff' }}>
-                ISO 55001 COMPLIANT
+              <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: '#111827', color: '#ffffff' }}>
+                ISO 55001
               </span>
             </div>
 
-            {/* Rendered SVG Industrial QR Code */}
             <div style={{
-              display: 'inline-flex', padding: '12px',
-              background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px',
-              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.04)', marginBottom: '16px'
+              display: 'inline-flex', padding: '10px',
+              background: '#ffffff', border: '1px solid var(--border-subtle)', borderRadius: '8px',
+              marginBottom: '16px'
             }}>
-              <svg width="150" height="150" viewBox="0 0 100 100" fill="none">
-                {/* 4 Corner Position Markers */}
-                <rect x="5" y="5" width="26" height="26" rx="4" fill="#0f172a" />
-                <rect x="9" y="9" width="18" height="18" rx="2" fill="#ffffff" />
-                <rect x="13" y="13" width="10" height="10" rx="1" fill="#0f172a" />
+              <svg width="144" height="144" viewBox="0 0 17 17" shapeRendering="crispEdges">
+                <rect x="0" y="0" width="5" height="5" fill="#111827" />
+                <rect x="1" y="1" width="3" height="3" fill="#ffffff" />
+                <rect x="2" y="2" width="1" height="1" fill="#111827" />
 
-                <rect x="69" y="5" width="26" height="26" rx="4" fill="#0f172a" />
-                <rect x="73" y="9" width="18" height="18" rx="2" fill="#ffffff" />
-                <rect x="77" y="13" width="10" height="10" rx="1" fill="#0f172a" />
+                <rect x="12" y="0" width="5" height="5" fill="#111827" />
+                <rect x="13" y="1" width="3" height="3" fill="#ffffff" />
+                <rect x="14" y="2" width="1" height="1" fill="#111827" />
 
-                <rect x="5" y="69" width="26" height="26" rx="4" fill="#0f172a" />
-                <rect x="9" y="73" width="18" height="18" rx="2" fill="#ffffff" />
-                <rect x="13" y="77" width="10" height="10" rx="1" fill="#0f172a" />
+                <rect x="0" y="12" width="5" height="5" fill="#111827" />
+                <rect x="1" y="13" width="3" height="3" fill="#ffffff" />
+                <rect x="2" y="14" width="1" height="1" fill="#111827" />
 
-                {/* Scannable Grid Matrix Dots */}
-                <rect x="36" y="8" width="6" height="6" fill="#0f172a" />
-                <rect x="46" y="8" width="6" height="6" fill="#0f172a" />
-                <rect x="56" y="8" width="6" height="6" fill="#0f172a" />
-
-                <rect x="36" y="18" width="6" height="6" fill="#0f172a" />
-                <rect x="46" y="24" width="6" height="6" fill="#0f172a" />
-                <rect x="56" y="18" width="6" height="6" fill="#0f172a" />
-
-                <rect x="8" y="36" width="6" height="6" fill="#0f172a" />
-                <rect x="18" y="46" width="6" height="6" fill="#0f172a" />
-                <rect x="28" y="36" width="6" height="6" fill="#0f172a" />
-
-                <rect x="38" y="38" width="24" height="24" rx="4" fill="var(--accent-blue)" />
-                <circle cx="50" cy="50" r="6" fill="#ffffff" />
-
-                <rect x="66" y="36" width="6" height="6" fill="#0f172a" />
-                <rect x="76" y="46" width="6" height="6" fill="#0f172a" />
-                <rect x="86" y="36" width="6" height="6" fill="#0f172a" />
-
-                <rect x="36" y="68" width="6" height="6" fill="#0f172a" />
-                <rect x="46" y="74" width="6" height="6" fill="#0f172a" />
-                <rect x="56" y="68" width="6" height="6" fill="#0f172a" />
-
-                <rect x="68" y="68" width="6" height="6" fill="#0f172a" />
-                <rect x="78" y="78" width="6" height="6" fill="#0f172a" />
-                <rect x="88" y="88" width="6" height="6" fill="#0f172a" />
+                {dataCells.map((cell, idx) => (
+                  <rect key={idx} x={cell.c} y={cell.r} width="1" height="1" fill="#111827" />
+                ))}
               </svg>
             </div>
 
-            {/* Asset Details */}
-            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>ASSET TAG:</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#0f172a' }}>{machine.id}</span>
+            <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Asset ID</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{machine.id}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>EQUIPMENT:</span>
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>{machine.name}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Equipment</span>
+                <span style={{ fontWeight: 600 }}>{machine.name}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>MANUFACTURER:</span>
-                <span style={{ color: '#0f172a' }}>{machine.manufacturer} {machine.model}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-subtle)', paddingBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Model</span>
+                <span>{machine.manufacturer} {machine.model}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>
-                <span style={{ color: '#64748b' }}>INSTALLED:</span>
-                <span style={{ color: '#0f172a' }}>{machine.installDate}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '2px' }}>
-                <span style={{ color: '#64748b' }}>HEALTH INDEX:</span>
-                <span style={{
-                  fontWeight: 800, fontFamily: 'var(--font-mono)',
-                  color: machine.health >= 80 ? 'var(--status-healthy)' : 'var(--status-critical)'
-                }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Health Index</span>
+                <span className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                   {machine.health}% ({machine.status.toUpperCase()})
                 </span>
               </div>
             </div>
           </div>
 
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '14px', lineHeight: 1.4 }}>
-            Scan using any standard smartphone camera or industrial Barcode/QR reader to directly launch the live Digital Twin Telemetry & Maintenance interface.
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.4 }}>
+            Route: <span style={{ fontFamily: 'var(--font-mono)' }}>#/digital-twin/{machine.id}</span>
           </p>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-            <button
-              onClick={handlePrintBadge}
-              style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                padding: '10px 16px', borderRadius: 'var(--radius-md)',
-                background: 'var(--accent-blue)', color: '#ffffff',
-                border: 'none', fontSize: '12px', fontWeight: 700, cursor: 'pointer'
-              }}
-            >
-              <Printer size={15} />
-              Print Asset Tag Badge
+          <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+            <button onClick={() => window.print()} className="btn btn--primary" style={{ flex: 1 }}>
+              <Printer size={14} strokeWidth={1.75} />
+              <span>Print Asset Tag</span>
             </button>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '10px 16px', borderRadius: 'var(--radius-md)',
-                background: '#f1f5f9', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-default)', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
-              }}
-            >
+            <button onClick={onClose} className="btn btn--secondary">
               Close
             </button>
           </div>

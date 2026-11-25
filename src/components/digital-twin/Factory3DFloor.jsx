@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { useNavigate } from 'react-router-dom';
 import { MACHINES, generateSensorData } from '../../data/factoryData';
+import { subscribeToLiveStream } from '../../services/api';
 import {
   ChevronRight, Activity, RotateCcw, Box, Compass,
   Waves, Cog, Wind, ArrowRight, Zap, Thermometer, Bot,
@@ -412,6 +413,7 @@ export function Factory3DFloor() {
   const mountRef = useRef(null);
   const navigate = useNavigate();
   const [selectedMachine, setSelectedMachine] = useState('P-101');
+  const [liveMachines, setLiveMachines] = useState(MACHINES);
   const [telemetry, setTelemetry] = useState(() => generateSensorData('P-101'));
   
   const controlsRef = useRef(null);
@@ -420,13 +422,14 @@ export function Factory3DFloor() {
   const controlsTarget = useRef(new THREE.Vector3(0, 0, 0));
   const isTransitioning = useRef(false);
 
-  // Update telemetry for selected machine
+  // Update telemetry and machine status for selected machine from live SSE stream
   useEffect(() => {
-    setTelemetry(generateSensorData(selectedMachine));
-    const interval = setInterval(() => {
-      setTelemetry(generateSensorData(selectedMachine));
-    }, 2500);
-    return () => clearInterval(interval);
+    const unsub = subscribeToLiveStream((snap) => {
+      if (snap?.machines) setLiveMachines(snap.machines);
+      const liveTel = snap?.telemetryByMachine?.[selectedMachine];
+      if (liveTel) setTelemetry(liveTel);
+    });
+    return () => unsub();
   }, [selectedMachine]);
 
   useEffect(() => {
@@ -547,8 +550,7 @@ export function Factory3DFloor() {
     crossLine2.position.set(1.4, 0.025, 0);
     scene.add(crossLine2);
 
-    // 5. Build 5 Machine Stations & Load Real Authentic Models
-    const beaconRings = [];
+    // 5. Build Machine Stations & Load Real CAD Models
     const rotatingElements = [];
     const billboardSprites = [];
     const loader = new GLTFLoader();
@@ -792,24 +794,9 @@ export function Factory3DFloor() {
         stationGroup.add(xfmr);
       }
 
-      // Floating Compact Status Beacon Ring at Pedestal Base
+      // Status Point Light (subtle bay illumination matching machine health)
       const statusColor = machine.status === 'critical' ? 0xef4444
         : machine.status === 'warning' ? 0xf59e0b : 0x10b981;
-
-      const ringGeo = new THREE.TorusGeometry(1.6, 0.03, 16, 32);
-      ringGeo.rotateX(Math.PI / 2);
-      const beaconMat = new THREE.MeshBasicMaterial({
-        color: statusColor,
-        transparent: true,
-        opacity: 0.85
-      });
-      const ringMesh = new THREE.Mesh(ringGeo, beaconMat);
-      ringMesh.position.y = 0.29;
-      ringMesh.userData = { machineId: id };
-      stationGroup.add(ringMesh);
-      beaconRings.push(ringMesh);
-
-      // Status Point Light
       const beaconLight = new THREE.PointLight(statusColor, machine.status === 'critical' ? 2.0 : 1.0, 5);
       beaconLight.position.y = 1.6;
       stationGroup.add(beaconLight);
@@ -876,13 +863,6 @@ export function Factory3DFloor() {
 
       controls.update();
 
-      // Subtle pulse on status rings
-      beaconRings.forEach((ring, idx) => {
-        ring.rotation.z += 0.01;
-        const scalePulse = 1.0 + Math.sin(elapsed * 2.0 + idx) * 0.04;
-        ring.scale.set(scalePulse, scalePulse, scalePulse);
-      });
-
       // Proximity-based smooth billboard transparency (fades completely when focused to prevent occlusion)
       billboardSprites.forEach(({ sprite, worldPos }) => {
         const dist = camera.position.distanceTo(worldPos);
@@ -917,7 +897,7 @@ export function Factory3DFloor() {
     };
   }, []);
 
-  const activeMachine = MACHINES[selectedMachine] || MACHINES['P-101'];
+  const activeMachine = liveMachines[selectedMachine] || MACHINES[selectedMachine] || MACHINES['P-101'];
   const activePosition = MACHINE_POSITIONS[selectedMachine];
   const ActiveIcon = activePosition?.icon || Box;
 
@@ -954,59 +934,50 @@ export function Factory3DFloor() {
       {/* 3D WebGL Canvas Mount */}
       <div ref={mountRef} style={{ width: '100%', height: '490px', cursor: 'grab' }} />
 
-      {/* Top Controls Overlay (Light Theme Frosted Glass) */}
+      {/* Top Controls Overlay */}
       <div style={{
-        position: 'absolute', top: '16px', left: '16px', right: '16px',
+        position: 'absolute', top: '12px', left: '12px', right: '12px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexWrap: 'wrap', gap: '10px', pointerEvents: 'none'
+        flexWrap: 'wrap', gap: '8px', pointerEvents: 'none'
       }}>
-        {/* Plant Floor Legend Badge */}
         <div style={{
           background: 'rgba(255, 255, 255, 0.94)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(226, 232, 240, 0.95)',
-          padding: '8px 16px',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.08)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid var(--border-subtle)',
+          padding: '8px 12px',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
           pointerEvents: 'auto',
           display: 'flex', alignItems: 'center', gap: '10px'
         }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '8px',
-            background: 'rgba(37, 99, 235, 0.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--accent-blue)'
-          }}>
-            <Compass size={18} />
-          </div>
+          <Compass size={16} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              3D Smart Factory Floor • Spatial Digital Twin
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              3D Shop Floor Layout
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Click any machine cell to inspect CAD model • Orbit 360°
+              Click a station to focus · Drag to orbit
             </div>
           </div>
         </div>
 
-        {/* Machine Quick Jump Station Selector Ribbon */}
+        {/* Station Selector */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
+          display: 'flex', alignItems: 'center', gap: '4px',
           background: 'rgba(255, 255, 255, 0.94)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(226, 232, 240, 0.95)',
-          padding: '4px 6px',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.08)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid var(--border-subtle)',
+          padding: '4px',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
           pointerEvents: 'auto',
           overflowX: 'auto'
         }}>
-
-          {Object.entries(MACHINE_POSITIONS).map(([id, meta]) => {
+          {Object.entries(MACHINE_POSITIONS).map(([id]) => {
             const isSelected = selectedMachine === id;
-            const mach = MACHINES[id];
+            const mach = liveMachines[id] || MACHINES[id];
             const statusColor = mach?.status === 'critical' ? 'var(--status-critical)'
-              : mach?.status === 'warning' ? 'var(--accent-amber)' : 'var(--accent-emerald)';
+              : mach?.status === 'warning' ? 'var(--status-warning)' : 'var(--status-healthy)';
 
             return (
               <button
@@ -1014,22 +985,18 @@ export function Factory3DFloor() {
                 onClick={() => handleSelectMachine(id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: isSelected ? '1px solid var(--accent-blue)' : '1px solid transparent',
+                  padding: '5px 9px',
+                  borderRadius: 'var(--radius-xs)',
+                  border: 'none',
                   cursor: 'pointer',
                   fontSize: '11px',
-                  fontWeight: isSelected ? 700 : 500,
-                  background: isSelected ? 'rgba(37, 99, 235, 0.1)' : 'transparent',
+                  fontWeight: isSelected ? 600 : 500,
+                  background: isSelected ? 'var(--accent-blue-soft)' : 'transparent',
                   color: isSelected ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                  transition: 'all 0.2s ease',
                   whiteSpace: 'nowrap'
                 }}
               >
-                <span style={{
-                  width: '6px', height: '6px', borderRadius: '50%',
-                  background: statusColor
-                }} />
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusColor }} />
                 <span>{id}</span>
               </button>
             );
@@ -1037,97 +1004,66 @@ export function Factory3DFloor() {
 
           <button
             onClick={handleResetCamera}
-            title="Reset to overhead factory floor view"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '5px',
-              padding: '6px 10px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--border-subtle)',
-              cursor: 'pointer',
-              fontSize: '11px',
-              fontWeight: 600,
-              background: '#f8fafc',
-              color: 'var(--text-secondary)',
-              transition: 'all 0.2s ease'
-            }}
+            title="Reset camera view"
+            className="btn btn--secondary"
+            style={{ padding: '4px 8px', fontSize: '11px' }}
           >
-            <RotateCcw size={12} />
-            Reset
+            <RotateCcw size={12} strokeWidth={1.75} />
+            <span>Reset</span>
           </button>
         </div>
       </div>
 
-      {/* Bottom Selected Machine HUD Card (Light Theme Frosted Glass) */}
+      {/* Bottom Selected Machine HUD */}
       <div style={{
-        position: 'absolute', bottom: '16px', left: '16px', right: '16px',
+        position: 'absolute', bottom: '12px', left: '12px', right: '12px',
         zIndex: 10,
-        background: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid rgba(226, 232, 240, 0.95)',
-        borderRadius: 'var(--radius-xl)',
-        padding: '16px 22px',
-        boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.05)',
+        background: 'rgba(255, 255, 255, 0.96)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '14px 18px',
+        boxShadow: 'var(--shadow-md)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: '16px'
+        flexWrap: 'wrap', gap: '14px'
       }}>
-        {/* Left Machine Meta */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '46px', height: '46px', borderRadius: 'var(--radius-md)',
-            background: activeMachine.status === 'critical' ? 'rgba(239, 68, 68, 0.1)'
-              : activeMachine.status === 'warning' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(37, 99, 235, 0.08)',
-            border: `1px solid ${activeMachine.status === 'critical' ? 'rgba(239, 68, 68, 0.3)'
-              : activeMachine.status === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(37, 99, 235, 0.2)'}`,
+            width: '38px', height: '38px', borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-subtle)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: activeMachine.status === 'critical' ? 'var(--status-critical)'
-              : activeMachine.status === 'warning' ? 'var(--accent-amber)' : 'var(--accent-blue)'
+            color: 'var(--text-primary)'
           }}>
-            <ActiveIcon size={24} />
+            <ActiveIcon size={18} strokeWidth={1.75} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {activeMachine.name}
               </span>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600,
-                padding: '2px 8px', borderRadius: '6px',
-                background: '#f1f5f9', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-default)'
+                padding: '1px 6px', borderRadius: '4px',
+                background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
               }}>
                 {activeMachine.id}
               </span>
-              <span style={{
-                fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
-                background: activeMachine.status === 'critical' ? '#fee2e2'
-                  : activeMachine.status === 'warning' ? '#fef3c7' : '#dcfce7',
-                color: activeMachine.status === 'critical' ? '#b91c1c'
-                  : activeMachine.status === 'warning' ? '#b45309' : '#15803d',
-                border: `1px solid ${activeMachine.status === 'critical' ? '#fca5a5'
-                  : activeMachine.status === 'warning' ? '#fde68a' : '#86efac'}`,
-                textTransform: 'uppercase', letterSpacing: '0.04em'
-              }}>
+              <span className={`badge badge--${activeMachine.status === 'critical' ? 'critical' : activeMachine.status === 'warning' ? 'warning' : 'healthy'}`}>
                 {activeMachine.status}
               </span>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
-              Station: {activePosition?.label} • {activeMachine.manufacturer} {activeMachine.model}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              {activePosition?.label} · {activeMachine.manufacturer} {activeMachine.model}
             </div>
           </div>
         </div>
 
-        {/* Center Live Telemetry Gauges Ribbon */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          {/* Health Index */}
-          <div style={{
-            background: '#f8fafc', border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Health Index
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700,
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Health</div>
+            <div className="tabular-nums" style={{
+              fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
               color: activeMachine.health >= 80 ? 'var(--status-healthy)'
                 : activeMachine.health >= 50 ? 'var(--status-warning)' : 'var(--status-critical)'
             }}>
@@ -1135,114 +1071,50 @@ export function Factory3DFloor() {
             </div>
           </div>
 
-          {/* Temperature */}
-          <div style={{
-            background: '#f8fafc', border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-              <Thermometer size={11} />
-              <span>Temp</span>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)'
-            }}>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Temp</div>
+            <div className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {telemetry?.temperature?.value ?? 42.0}°C
             </div>
           </div>
 
-          {/* Vibration */}
-          <div style={{
-            background: '#f8fafc', border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-              <Activity size={11} />
-              <span>Vibration</span>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700,
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Vibration</div>
+            <div className="tabular-nums" style={{
+              fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
               color: (telemetry?.vibration?.value ?? 1.5) > 4.5 ? 'var(--status-critical)' : 'var(--text-primary)'
             }}>
-              {telemetry?.vibration?.value ?? 1.45} <span style={{ fontSize: '10px', fontWeight: 500, color: 'var(--text-muted)' }}>mm/s</span>
+              {telemetry?.vibration?.value ?? 1.45} <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)' }}>mm/s</span>
             </div>
           </div>
 
-          {/* Machine Specific Key Telemetry */}
-          <div style={{
-            background: '#f8fafc', border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-          }}>
+          <div>
             <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
               {selectedMachine === 'COMP-201' ? 'Air Pressure'
-                : selectedMachine === 'P-101' ? 'Pump Flow'
-                : selectedMachine === 'CNC-001' ? 'Spindle Runout'
-                : selectedMachine === 'ROB-001' ? 'Active Payload'
+                : selectedMachine === 'P-101' ? 'NPSH Margin'
+                : selectedMachine === 'CNC-001' ? 'Runout'
+                : selectedMachine === 'ROB-001' ? 'Payload'
                 : selectedMachine === 'CONV-401' ? 'Belt Tension'
-                : 'Transformer Oil'}
+                : 'Top Oil'}
             </div>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700, color: 'var(--accent-blue)'
-            }}>
+            <div className="tabular-nums" style={{ fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
               {selectedMachine === 'COMP-201' ? `${telemetry?.tankPressure ?? 7.2} bar`
-                : selectedMachine === 'P-101' ? `${telemetry?.npshMargin ?? 1.8}m NPSH`
+                : selectedMachine === 'P-101' ? `${telemetry?.npshMargin?.value ?? telemetry?.npshMargin ?? 1.8} m`
                 : selectedMachine === 'CNC-001' ? `${telemetry?.spindleRunout ?? 1.2} µm`
                 : selectedMachine === 'ROB-001' ? `${telemetry?.activePayload ?? 142} kg`
                 : selectedMachine === 'CONV-401' ? `${telemetry?.beltTension ?? 98}%`
                 : `${telemetry?.topOilTemp ?? 45}°C`}
             </div>
           </div>
-
-          {selectedMachine === 'CNC-001' && (
-            <div style={{
-              background: '#f8fafc', border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Spindle Speed
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700, color: 'var(--accent-blue)'
-              }}>
-                {telemetry?.spindleSpeed ?? 4200} <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>RPM</span>
-              </div>
-            </div>
-          )}
-
-          {selectedMachine === 'ROB-001' && (
-            <div style={{
-              background: '#f8fafc', border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)', padding: '6px 14px', textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                TCP Velocity
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: '17px', fontWeight: 700, color: 'var(--accent-blue)'
-              }}>
-                {telemetry?.tcpVelocity ?? 1250} <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>mm/s</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right Deep Dive Button */}
         <button
           onClick={() => navigate(`/digital-twin/${activeMachine.id}`)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '11px 20px', borderRadius: 'var(--radius-md)',
-            background: 'var(--accent-blue)', border: 'none', color: '#ffffff',
-            fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
-            transition: 'all 0.2s ease',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+          className="btn btn--primary"
+          style={{ padding: '8px 14px' }}
         >
-          <span>Open Digital Twin Deep Dive</span>
-          <ChevronRight size={17} />
+          <span>Inspect Asset</span>
+          <ChevronRight size={15} strokeWidth={1.75} />
         </button>
       </div>
     </div>

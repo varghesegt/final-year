@@ -1,5 +1,5 @@
 /* ===================================================================
-   Common Components — Light Theme Styles
+   Common Components — Precision Neutral Styles
    =================================================================== */
 
 /* ── Status Dot ──────────────────────────────────────────────────── */
@@ -11,121 +11,115 @@
   flex-shrink: 0;
 }
 
-.status-dot--running  { background: var(--status-healthy); box-shadow: 0 0 6px var(--status-healthy); animation: breathe 3s ease-in-out infinite; }
-.status-dot--healthy  { background: var(--status-healthy); box-shadow: 0 0 6px var(--status-healthy); animation: breathe 3s ease-in-out infinite; }
-.status-dot--warning  { background: var(--status-warning); box-shadow: 0 0 6px var(--status-warning); animation: pulse-glow 2s ease-in-out infinite; }
-.status-dot--critical { background: var(--status-critical); box-shadow: 0 0 6px var(--status-critical); animation: pulse-glow 1.5s ease-in-out infinite; }
+.status-dot--running  { background: var(--status-healthy); }
+.status-dot--healthy  { background: var(--status-healthy); }
+.status-dot--warning  { background: var(--status-warning); }
+.status-dot--critical { background: var(--status-critical); }
 .status-dot--offline  { background: var(--status-offline); }
 
 .status-dot--lg {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
-/* ── Badge ─────────────────────────────────────────────────────────── */
+/* ── Badge ───────────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .badge--healthy, .badge--running {
-  background: rgba(5, 150, 105, 0.1);
+  background: #ecfdf5;
   color: var(--status-healthy);
-  border: 1px solid rgba(5, 150, 105, 0.25);
+  border: 1px solid #a7f3d0;
 }
 
 .badge--warning {
-  background: rgba(217, 119, 6, 0.1);
+  background: #fffbeb;
   color: var(--status-warning);
-  border: 1px solid rgba(217, 119, 6, 0.25);
+  border: 1px solid #fde68a;
 }
 
 .badge--critical {
-  background: rgba(220, 38, 38, 0.1);
+  background: #fef2f2;
   color: var(--status-critical);
-  border: 1px solid rgba(220, 38, 38, 0.25);
+  border: 1px solid #fecaca;
 }
 
 .badge--info {
-  background: rgba(37, 99, 235, 0.1);
+  background: var(--accent-blue-soft);
   color: var(--accent-blue);
-  border: 1px solid rgba(37, 99, 235, 0.25);
+  border: 1px solid #bfdbfe;
 }
 
-/* ── Metric Card (Light Theme) ────────────────────────────────────── */
+/* ── Metric Card ─────────────────────────────────────────────────── */
 .metric-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--sp-5) var(--sp-6);
+  padding: var(--sp-5);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  transition: all var(--transition-base);
-  position: relative;
-  overflow: hidden;
+  min-width: 0;
   box-shadow: var(--shadow-sm);
-}
-
-.metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--metric-accent, var(--accent-blue));
-  opacity: 0.85;
-  transition: opacity var(--transition-base);
+  transition: border-color var(--transition-fast);
 }
 
 .metric-card:hover {
   border-color: var(--border-default);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+}
+
+.metric-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
 }
 
 .metric-card__icon {
-  position: absolute;
-  top: var(--sp-4);
-  right: var(--sp-5);
-  opacity: 0.18;
-  color: var(--metric-accent, var(--accent-blue));
-  transition: opacity var(--transition-base);
-}
-
-.metric-card:hover .metric-card__icon {
-  opacity: 0.35;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .metric-card__label {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-card__value {
   font-family: var(--font-mono);
-  font-size: var(--fs-3xl);
+  font-size: var(--fs-2xl);
   font-weight: var(--fw-bold);
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 1.15;
   display: flex;
   align-items: baseline;
   gap: var(--sp-1);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .metric-card__unit {
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-regular);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
   color: var(--text-muted);
 }
 
@@ -133,21 +127,22 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  margin-top: var(--sp-1);
+  font-size: 12px;
+  font-weight: var(--fw-medium);
+  margin-top: 2px;
 }
 
 .metric-card__trend--up     { color: var(--status-healthy); }
 .metric-card__trend--down   { color: var(--status-critical); }
 .metric-card__trend--stable { color: var(--text-muted); }
 
-/* ── Health Ring ────────────────────────────────────────────────────── */
+/* ── Health Ring ─────────────────────────────────────────────────── */
 .health-ring {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .health-ring__svg {
@@ -156,13 +151,13 @@
 
 .health-ring__track {
   fill: none;
-  stroke: #e2e8f0;
+  stroke: var(--bg-secondary);
 }
 
 .health-ring__progress {
   fill: none;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
+  transition: stroke-dashoffset 400ms ease, stroke 200ms ease;
 }
 
 .health-ring__label {
@@ -178,31 +173,25 @@
   font-weight: var(--fw-bold);
   color: var(--text-primary);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .health-ring__text {
   font-size: 10px;
+  font-weight: var(--fw-medium);
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   margin-top: 2px;
 }
 
-/* ── Sensor Gauge Bar ──────────────────────────────────────────────── */
+/* ── Sensor Gauge Bar ────────────────────────────────────────────── */
 .gauge {
-  background: #ffffff;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--sp-4);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--transition-fast);
-}
-
-.gauge:hover {
-  border-color: var(--border-default);
 }
 
 .gauge__label {
@@ -222,6 +211,7 @@
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .gauge__unit {
@@ -231,7 +221,7 @@
 
 .gauge__bar {
   height: 6px;
-  background: #e2e8f0;
+  background: var(--bg-secondary);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -239,67 +229,121 @@
 .gauge__bar-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  transition: width 0.6s ease-out, background-color 0.4s ease;
+  transition: width 300ms ease, background-color 200ms ease;
 }
 
-/* ── Data Tables (Light Theme) ───────────────────────────────────── */
-.data-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: var(--fs-sm);
-}
-
-.data-table th {
-  background: #f8fafc;
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.data-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  transition: background var(--transition-fast);
-}
-
-.data-table tbody tr {
-  transition: background var(--transition-fast);
-}
-
-.data-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.04);
-}
-
+/* ── Data Tables ─────────────────────────────────────────────────── */
 .data-table-container {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── Responsive Component Adjustments ─────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.data-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-weight: var(--fw-semibold);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ── Shared Control Buttons ──────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn--primary {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+}
+
+.btn--primary:hover {
+  background: var(--accent-blue-dim);
+  border-color: var(--accent-blue-dim);
+}
+
+.btn--secondary {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+}
+
+.btn--secondary:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn--success {
+  background: var(--status-healthy);
+  color: #ffffff;
+  border-color: var(--status-healthy);
+}
+
+.btn--danger-outline {
+  background: var(--bg-primary);
+  color: var(--status-critical);
+  border-color: #fecaca;
+}
+
+.btn--danger-outline:hover {
+  background: #fef2f2;
+}
+
 @media (max-width: 640px) {
   .data-table th,
   .data-table td {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 12px;
+  }
+
+  .metric-card {
+    padding: var(--sp-4);
   }
 
   .metric-card__value {
-    font-size: var(--fs-2xl);
-  }
-
-  .gauge {
-    padding: var(--sp-3);
-  }
-
-  .gauge__value {
-    font-size: var(--fs-lg);
+    font-size: var(--fs-xl);
   }
 }

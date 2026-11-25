@@ -103,7 +103,7 @@ export function CNCSCADAView({ sensors, machine }) {
             fontWeight: 700,
             color: '#60a5fa'
           }}>
-            <Cpu size={13} className="animate-pulse" />
+            <Cpu size={13} />
             SINUMERIK 840D sl
           </div>
 
@@ -602,7 +602,7 @@ function SimplifiedMachineSVG({
         {/* Coolant Liquid Level */}
         <rect x="220" y="388" width="260" height="32" rx="3" fill="rgba(6, 182, 212, 0.25)" stroke="#0891b2" strokeWidth="1" />
         {/* Animated surface wave */}
-        <path d="M 220 388 Q 280 385 350 388 T 480 388" fill="none" stroke="#38bdf8" strokeWidth="1.5" className="animate-pulse" />
+        <path d="M 220 388 Q 280 385 350 388 T 480 388" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
         <text x="350" y="408" textAnchor="middle" fill="#38bdf8" fontSize="9" fontFamily="var(--font-mono)" fontWeight="700">
           COOLANT SUMP: 60L (4.2 bar)
         </text>

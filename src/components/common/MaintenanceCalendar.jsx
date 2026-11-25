@@ -1,91 +1,101 @@
-import { Calendar as CalendarIcon, Clock, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
-export function MaintenanceCalendar() {
-  const daysInMonth = 31;
-  const currentMonth = 'August 2026';
+export function MaintenanceCalendar({ workOrders = [] }) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const todayDate = now.getDate();
+  const currentMonth = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  // Scheduled events for the month
   const events = {
     5: [{ type: 'completed', title: 'P-101 Oil & Filter Change', tech: 'T-003' }],
-    12: [{ type: 'completed', title: 'CNC-002 Spindle Calibration', tech: 'T-001' }],
-    18: [{ type: 'planned', title: 'P-101 AI Bearing Replacement', tech: 'T-003', priority: 'HIGH' }],
+    12: [{ type: 'completed', title: 'CNC-001 Spindle Calibration', tech: 'T-001' }],
     24: [{ type: 'planned', title: 'COMP-201 Air Filter Cleaning', tech: 'T-005' }],
-    29: [{ type: 'predicted', title: 'CNC-003 Vibration Inspection', tech: 'T-002', priority: 'CRITICAL' }],
   };
+
+  workOrders.forEach((wo) => {
+    const sched = wo.scheduledDate ? new Date(wo.scheduledDate) : null;
+    const dayNum = sched && sched.getMonth() === month ? sched.getDate() : Math.min(daysInMonth, todayDate + 3);
+    if (!events[dayNum]) events[dayNum] = [];
+    events[dayNum].push({
+      type: wo.status === 'Completed' ? 'completed' : wo.priority === 'CRITICAL' ? 'predicted' : 'planned',
+      title: `${wo.machineId} ${wo.failureMode}`,
+      tech: wo.assignedTo?.id || 'T-001',
+    });
+  });
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
-    <div className="twin-panel" style={{ marginTop: 'var(--sp-6)' }}>
-      <div className="twin-panel__title" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
-          <CalendarIcon size={18} style={{ color: 'var(--accent-blue)' }} />
-          <span>Interactive Maintenance Calendar — {currentMonth}</span>
+    <div className="twin-panel">
+      <div className="twin-panel__title">
+        <div className="twin-panel__title-left">
+          <CalendarIcon size={16} strokeWidth={1.75} className="twin-panel__title-icon" />
+          <span>Maintenance Schedule — {currentMonth}</span>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--sp-3)', fontSize: 'var(--fs-xs)' }}>
-          <span style={{ color: 'var(--status-healthy)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-4)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-healthy)' }} /> Completed
           </span>
-          <span style={{ color: 'var(--status-warning)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-warning)' }} /> Scheduled PM
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-warning)' }} /> Scheduled
           </span>
-          <span style={{ color: 'var(--status-critical)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-critical)' }} /> AI Recommended
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--status-critical)' }} /> Critical
           </span>
         </div>
       </div>
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '6px',
-        marginTop: 'var(--sp-4)'
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+        gap: '6px'
       }}>
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
           <div key={d} style={{
             textAlign: 'center',
-            fontSize: 'var(--fs-xs)',
+            fontSize: '11px',
             fontWeight: 600,
             color: 'var(--text-muted)',
-            padding: '6px 0'
+            padding: '4px 0'
           }}>
             {d}
           </div>
         ))}
 
-        {/* Offset for starting weekday (Friday Aug 1) */}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={`empty-${i}`} style={{ background: 'transparent' }} />
+        {Array.from({ length: firstWeekday }).map((_, i) => (
+          <div key={`empty-${i}`} />
         ))}
 
         {days.map(day => {
           const dayEvents = events[day] || [];
-          const isToday = day === 6;
+          const isToday = day === todayDate;
 
           return (
             <div
               key={day}
               style={{
-                background: isToday ? 'rgba(59, 130, 246, 0.1)' : 'var(--bg-primary)',
-                border: `1px solid ${isToday ? 'var(--accent-blue)' : 'var(--border-subtle)'}`,
+                background: isToday ? 'var(--accent-blue-soft)' : 'var(--bg-tertiary)',
+                border: `1px solid ${isToday ? '#bfdbfe' : 'var(--border-subtle)'}`,
                 borderRadius: 'var(--radius-sm)',
-                minHeight: '75px',
+                minHeight: '72px',
                 padding: '6px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s ease'
+                justifyContent: 'space-between'
               }}
             >
               <div style={{
                 display: 'flex',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 fontSize: '11px',
-                fontWeight: isToday ? 700 : 400,
+                fontWeight: isToday ? 700 : 500,
                 color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)'
               }}>
                 <span>{day}</span>
-                {isToday && <span style={{ fontSize: '9px', textTransform: 'uppercase' }}>Today</span>}
+                {isToday && <span style={{ fontSize: '10px' }}>Today</span>}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -95,11 +105,10 @@ export function MaintenanceCalendar() {
                     title={`${ev.title} (${ev.tech})`}
                     style={{
                       fontSize: '10px',
-                      padding: '2px 4px',
+                      padding: '2px 5px',
                       borderRadius: '3px',
-                      background: ev.type === 'completed' ? 'rgba(16, 185, 129, 0.15)'
-                        : ev.type === 'planned' ? 'rgba(245, 158, 11, 0.15)'
-                        : 'rgba(239, 68, 68, 0.15)',
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border-subtle)',
                       borderLeft: `2px solid ${
                         ev.type === 'completed' ? 'var(--status-healthy)'
                           : ev.type === 'planned' ? 'var(--status-warning)'

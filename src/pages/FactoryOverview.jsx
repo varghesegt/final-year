@@ -1,204 +1,214 @@
 /* ===================================================================
-   Module 1 — Factory Overview (Digital Factory Floor)
+   Factory Overview — Shop Floor & Zone Grid
    =================================================================== */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Factory, Activity, AlertTriangle, CheckCircle, XCircle,
+  Factory, Activity, AlertTriangle, CheckCircle,
   Gauge, TrendingUp, Cog, Waves, Wind, Zap, ArrowRight,
-  Package, Microscope, ChevronRight, Box, Grid
+  Package, Microscope, ChevronRight, Box, Grid, Bot
 } from 'lucide-react';
-import { ZONES, MACHINES, getFactorySummary } from '../data/factoryData';
-import { MetricCard, StatusDot, Badge, HealthRing, DemoController } from '../components/common';
+import { ZONES as DEFAULT_ZONES, MACHINES as DEFAULT_MACHINES, getFactorySummary } from '../data/factoryData';
+import { MetricCard, StatusDot, Badge } from '../components/common';
 import { Factory3DFloor } from '../components/digital-twin/Factory3DFloor';
+import { fetchFactoryOverview, subscribeToLiveStream } from '../services/api';
 
 const ICON_MAP = {
-  Cog, Waves, Wind, Zap, ArrowRight, Package, Microscope,
+  Cog, Waves, Wind, Zap, ArrowRight, Package, Microscope, Bot,
 };
 
 export default function FactoryOverview() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(getFactorySummary());
-  const [viewMode, setViewMode] = useState('3d'); // '3d' or 'grid'
+  const [zones, setZones] = useState(DEFAULT_ZONES);
+  const [machines, setMachines] = useState(DEFAULT_MACHINES);
+  const [telemetryByMachine, setTelemetryByMachine] = useState({});
+  const [viewMode, setViewMode] = useState('3d');
 
-  // Update stats every 3 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setSummary(getFactorySummary());
-    }, 3000);
-    return () => clearInterval(interval);
+    let active = true;
+    fetchFactoryOverview().then((data) => {
+      if (!active) return;
+      if (data.zones) setZones(data.zones);
+      if (data.machines) setMachines(data.machines);
+      if (data.summary) setSummary(data.summary);
+    });
+
+    const unsubscribe = subscribeToLiveStream((snap) => {
+      if (snap?.summary) setSummary(snap.summary);
+      if (snap?.machines) setMachines(snap.machines);
+      if (snap?.telemetryByMachine) setTelemetryByMachine(snap.telemetryByMachine);
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
+
+  const totalPowerKw = summary.fleetPowerKw
+    ?? Math.round(Object.values(machines).reduce((s, m) => s + (m.ratedPowerKw || 12) * 0.78, 0) * 10) / 10;
 
   return (
     <div className="factory-overview">
-      {/* Viva Presentation Demo Controller Bar */}
-      <DemoController />
-
-      {/* Section Header */}
       <div className="section-header">
         <div className="section-header__left">
           <h1 className="section-header__title">
-            <Factory size={24} style={{ color: 'var(--accent-blue)' }} />
-            Digital Factory Floor
+            <Factory size={20} strokeWidth={1.75} style={{ color: 'var(--text-muted)' }} />
+            Factory Floor
           </h1>
           <p className="section-header__subtitle">
-            Real-time monitoring of all factory zones, 3D shop floor spatial layout, and operational status
+            Live equipment telemetry across six industrial zones · Fleet Draw{' '}
+            <strong className="tabular-nums" style={{ color: 'var(--text-primary)' }}>{totalPowerKw} kW</strong>
+            {summary.hourlyDowntimeExposure > 0 && (
+              <>
+                {' '}· Exposure{' '}
+                <strong className="tabular-nums" style={{ color: 'var(--status-warning)' }}>
+                  ₹{(summary.hourlyDowntimeExposure / 1000).toFixed(1)}K/hr
+                </strong>
+              </>
+            )}
           </p>
         </div>
 
-        {/* 2D Grid vs 3D Floor Switcher */}
-        <div style={{
-          display: 'flex',
-          background: '#ffffff',
-          borderRadius: 'var(--radius-md)',
-          padding: '3px',
-          border: '1px solid var(--border-default)',
-          boxShadow: 'var(--shadow-sm)'
-        }}>
+        <div className="segmented-control" role="tablist" aria-label="Floor view mode">
           <button
             onClick={() => setViewMode('3d')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 14px', borderRadius: 'var(--radius-sm)',
-              border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-              background: viewMode === '3d' ? 'var(--accent-blue)' : 'transparent',
-              color: viewMode === '3d' ? '#ffffff' : 'var(--text-secondary)',
-              transition: 'all 0.2s ease'
-            }}
+            className={`segmented-control__btn ${viewMode === '3d' ? 'segmented-control__btn--active' : ''}`}
           >
-            <Box size={14} />
-            3D Shop Floor
+            <Box size={14} strokeWidth={1.75} />
+            <span>3D Floor</span>
           </button>
           <button
             onClick={() => setViewMode('grid')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 14px', borderRadius: 'var(--radius-sm)',
-              border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-              background: viewMode === 'grid' ? 'var(--accent-blue)' : 'transparent',
-              color: viewMode === 'grid' ? '#ffffff' : 'var(--text-secondary)',
-              transition: 'all 0.2s ease'
-            }}
+            className={`segmented-control__btn ${viewMode === 'grid' ? 'segmented-control__btn--active' : ''}`}
           >
-            <Grid size={14} />
-            Zone Grid
+            <Grid size={14} strokeWidth={1.75} />
+            <span>Zone Grid</span>
           </button>
         </div>
       </div>
 
-      {/* Factory KPIs */}
       <div className="factory-stats">
         <MetricCard
           label="Total Assets"
           value={summary.totalMachines}
           icon={Activity}
-          accent="var(--accent-blue)"
+          trend="stable"
+          trendValue={`${zones.length} monitored bays`}
         />
         <MetricCard
           label="Running"
           value={summary.running}
           icon={CheckCircle}
-          accent="var(--accent-emerald)"
           trend="stable"
-          trendValue="All systems normal"
+          trendValue="Within rated limits"
         />
         <MetricCard
-          label="Warnings"
-          value={summary.warnings}
+          label="Advisories"
+          value={summary.warnings + (summary.critical || 0)}
           icon={AlertTriangle}
-          accent="var(--accent-amber)"
-          trend={summary.warnings > 0 ? 'up' : 'stable'}
-          trendValue={summary.warnings > 0 ? 'Needs attention' : 'None'}
+          trend={summary.warnings + (summary.critical || 0) > 0 ? 'down' : 'stable'}
+          trendValue={summary.warnings + (summary.critical || 0) > 0 ? 'Inspection queued' : 'No active faults'}
         />
         <MetricCard
-          label="Avg. Health"
+          label="Fleet Health"
           value={summary.avgHealth}
           unit="%"
           icon={Gauge}
-          accent="var(--accent-cyan)"
           trend="up"
-          trendValue="+2.1% this week"
+          trendValue="Weighted index"
         />
         <MetricCard
-          label="Factory Uptime"
+          label="Plant Availability"
           value={summary.uptime}
           unit="%"
           icon={TrendingUp}
-          accent="var(--accent-emerald)"
           trend="up"
-          trendValue="+0.8% this month"
+          trendValue="90-day rolling"
         />
       </div>
 
-      {/* Main View: 3D Shop Floor Walkthrough or 2D Zone Grid */}
       {viewMode === '3d' ? (
-        <div style={{ marginTop: 'var(--sp-4)' }}>
-          <Factory3DFloor />
-        </div>
+        <Factory3DFloor />
       ) : (
         <div className="factory-floor">
-          {ZONES.map((zone) => {
-            const zoneMachines = zone.machines.map(id => MACHINES[id]).filter(Boolean);
-            const avgHealth = Math.round(
-              zoneMachines.reduce((s, m) => s + m.health, 0) / zoneMachines.length
-            );
-            const hasWarning = zoneMachines.some(m => m.status === 'warning' || m.status === 'critical');
+          {zones.map((zone) => {
+            const zoneMachines = zone.machines.map(id => machines[id]).filter(Boolean);
+            const avgHealth = zoneMachines.length
+              ? Math.round(zoneMachines.reduce((s, m) => s + m.health, 0) / zoneMachines.length)
+              : 0;
+            const hasCritical = zoneMachines.some(m => m.status === 'critical');
+            const hasWarning = zoneMachines.some(m => m.status === 'warning');
             const ZoneIcon = ICON_MAP[zone.icon] || Cog;
 
             return (
-              <div
-                key={zone.id}
-                className="zone-card"
-                style={{ '--zone-color': zone.color }}
-              >
+              <div key={zone.id} className="zone-card">
                 <div className="zone-card__header">
-                  <div className="zone-card__icon">
-                    <ZoneIcon size={22} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="zone-card__icon">
+                      <ZoneIcon size={18} strokeWidth={1.75} />
+                    </div>
+                    <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                      {zone.code || zone.id.toUpperCase()}
+                      {zone.ambientTargetC ? ` · ${zone.ambientTargetC}°C Bay` : ''}
+                    </div>
                   </div>
-                  <Badge variant={hasWarning ? 'warning' : 'healthy'}>
-                    {hasWarning ? 'Warning' : 'Healthy'}
+                  <Badge variant={hasCritical ? 'critical' : hasWarning ? 'warning' : 'healthy'}>
+                    {hasCritical ? 'Critical' : hasWarning ? 'Advisory' : 'Nominal'}
                   </Badge>
                 </div>
 
                 <h3 className="zone-card__name">{zone.name}</h3>
                 <p className="zone-card__description">{zone.description}</p>
 
-                {/* Machine List */}
                 <div className="zone-card__machines">
-                  {zoneMachines.map(machine => (
-                    <div
-                      key={machine.id}
-                      className="zone-card__machine-row"
-                      style={{ cursor: 'pointer' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/digital-twin/${machine.id}`);
-                      }}
-                    >
-                      <div className="zone-card__machine-info">
-                        <StatusDot status={machine.status} />
-                        <span style={{ color: 'var(--text-secondary)' }}>{machine.name}</span>
-                      </div>
-                      <span
-                        className="zone-card__machine-health"
-                        style={{
-                          color: machine.health >= 80 ? 'var(--status-healthy)'
-                            : machine.health >= 50 ? 'var(--status-warning)'
-                            : 'var(--status-critical)'
-                        }}
+                  {zoneMachines.map(machine => {
+                    const liveTel = telemetryByMachine[machine.id];
+                    const liveTemp = liveTel?.temperature?.value;
+                    const liveVib = liveTel?.vibration?.value;
+                    return (
+                      <div
+                        key={machine.id}
+                        className="zone-card__machine-row"
+                        style={{ cursor: 'pointer', flexDirection: 'column', alignItems: 'stretch', gap: '6px' }}
+                        onClick={() => navigate(`/digital-twin/${machine.id}`)}
                       >
-                        {machine.health}%
-                      </span>
-                    </div>
-                  ))}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <div className="zone-card__machine-info">
+                            <StatusDot status={machine.status} />
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{machine.name}</span>
+                          </div>
+                          <span
+                            className="zone-card__machine-health"
+                            style={{
+                              color: machine.health >= 80 ? 'var(--status-healthy)'
+                                : machine.health >= 50 ? 'var(--status-warning)'
+                                : 'var(--status-critical)'
+                            }}
+                          >
+                            {machine.health}%
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                          <span>{machine.manufacturer} · {machine.id}</span>
+                          <span className="tabular-nums">
+                            {liveTemp != null ? `${liveTemp}°C` : `${machine.ratedPowerKw ?? '—'} kW`}
+                            {liveVib != null ? ` · ${liveVib} mm/s` : ''}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* Footer Stats */}
                 <div className="zone-card__footer">
                   <div className="zone-card__stat">
-                    <span className="zone-card__stat-value">{zoneMachines.length}</span>
-                    <span className="zone-card__stat-label">Assets</span>
+                    <span className="zone-card__stat-value">
+                      {(zoneMachines[0]?.runtimeHours || 0).toLocaleString()}h
+                    </span>
+                    <span className="zone-card__stat-label">Runtime</span>
                   </div>
                   <div className="zone-card__stat">
                     <span className="zone-card__stat-value" style={{
@@ -208,16 +218,25 @@ export default function FactoryOverview() {
                     }}>
                       {avgHealth}%
                     </span>
-                    <span className="zone-card__stat-label">Avg Health</span>
+                    <span className="zone-card__stat-label">Health</span>
                   </div>
-                  <div
-                    className="zone-card__stat"
-                    style={{ color: 'var(--accent-blue)', cursor: 'pointer' }}
+                  <button
                     onClick={() => navigate(`/digital-twin/${zoneMachines[0]?.id || ''}`)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-blue)',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
                   >
-                    <ChevronRight size={18} />
-                    <span className="zone-card__stat-label">Details</span>
-                  </div>
+                    <span>Inspect</span>
+                    <ChevronRight size={14} strokeWidth={1.75} />
+                  </button>
                 </div>
               </div>
             );

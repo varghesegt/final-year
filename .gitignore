@@ -28,3 +28,10 @@ dist-ssr
 /*.zip
 /*.cjs
 
+# SQLite runtime database and WAL files (auto-seeded on startup)
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+
